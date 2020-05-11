@@ -270,7 +270,6 @@ function decodeFrame(marker, reader, img) {
     }
 
     // Figure out component dimensions (A.1.1)
-    // TODO: Need to make sure these are multiples of 8?
     let hmax = 0;   // Max H sampling factor across all components
     let vmax = 0;   // Max V sampling factor across all components
     for (component of components) {
@@ -280,15 +279,20 @@ function decodeFrame(marker, reader, img) {
     // Calculate # of horizontal + vertical MCUs in the image
     frame.hMCUs = Math.ceil(frame.frameX / DATA_UNIT_SIZE / hmax);
     frame.vMCUS = Math.ceil(frame.frameY / DATA_UNIT_SIZE / vmax);
+    
+    // Calculate size in pixels of output buffer (which may be bigger than the image)
+    frame.outputX = frame.hMCUs * hmax * DATA_UNIT_SIZE;
+    frame.outputY = frame.vMCUS * vmax * DATA_UNIT_SIZE;
+
     // Calculate component dimensions (x,y)
     for (component of components) {
-        component.hSize = Math.ceil(frame.frameX * (component.hSampleFactor / hmax)); // size in X
-        component.vSize = Math.ceil(frame.frameY * (component.vSampleFactor / vmax)); // size in Y
+        component.hSize = Math.ceil(frame.outputX * (component.hSampleFactor / hmax)); // size in X
+        component.vSize = Math.ceil(frame.outputY * (component.vSampleFactor / vmax)); // size in Y
         console.log("    Component[" + component.componentID + "] size: "
             + component.hSize + "x" + component.vSize);
     }
 
-    // Set up ouptut buffers for each component
+    // Set up output buffers for each component
     for (component of components) {
         // TODO: Make this a UInt8 array?
         component.imgBuff = new Array(component.hSize * component.vSize); // component x * y
@@ -475,13 +479,13 @@ function decodeScan(marker, reader, img, scan) {
     for (let i = 0; i < components.length; i++) {
         let component = components[i];
         let canvas = document.getElementById("component" + i + "RGBCanvas");
-        canvas.setAttribute("width", img.frame.frameX);
-        canvas.setAttribute("height", img.frame.frameY);
+        canvas.setAttribute("width", img.frame.outputX);
+        canvas.setAttribute("height", img.frame.outputY);
         let ctx = canvas.getContext("2d");
         let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         let data = imgData.data;
-        let hScale = img.frame.frameX / component.hSize;  // Factor to scale component up to output side
-        let vScale = img.frame.frameY / component.vSize;  // Factor to scale component up to output side
+        let hScale = img.frame.outputX / component.hSize;  // Factor to scale component up to output side
+        let vScale = img.frame.outputY / component.vSize;  // Factor to scale component up to output side
         for (let sy = 0, dy = 0; sy < component.vSize; sy++, dy+=vScale) {
             let srcLineStart = sy * component.hSize;
             for (let sx = 0, dx = 0; sx < component.hSize; sx++, dx+=hScale) {
@@ -492,7 +496,7 @@ function decodeScan(marker, reader, img, scan) {
                     for (let x = 0; x < hScale; x++) {
                         let destY = dy + y;
                         let destX = dx + x;
-                        setPixel(data, img.frame.frameX, destX, destY, pixel);
+                        setPixel(data, img.frame.outputX, destX, destY, pixel);
                     }
                 }
             }
@@ -502,8 +506,8 @@ function decodeScan(marker, reader, img, scan) {
 
     // Combine images via YCbCr --> YUV conversion
     let canvas = document.getElementById("outputCanvas");
-    canvas.setAttribute("width", img.frame.frameX);
-    canvas.setAttribute("height", img.frame.frameY);
+    canvas.setAttribute("width", img.frame.outputX);
+    canvas.setAttribute("height", img.frame.outputY);
     let ctx = canvas.getContext("2d");
     let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     let data = imgData.data;
@@ -512,9 +516,9 @@ function decodeScan(marker, reader, img, scan) {
     let pixel;
     // TODO: Need to update this so that it reads from the correct pixel of
     // each component, compensating for the different possible scaling factors
-    for (let y = 0; y < img.frame.frameY; y++) {
-        let srcLineStart = y * img.frame.frameX;
-        for (let x = 0; x < img.frame.frameX; x++) {
+    for (let y = 0; y < img.frame.outputY; y++) {
+        let srcLineStart = y * img.frame.outputX;
+        for (let x = 0; x < img.frame.outputX; x++) {
             if (frame.numComponents === 1) {
                 // JFIF grayscale
                 Y = components[0].imgBuff[srcLineStart + x];
@@ -528,7 +532,7 @@ function decodeScan(marker, reader, img, scan) {
             } else {
                 console.error("Error: Image has " + frame.numComponents + " components; we only support 1 or 3 for JFIF");
             }
-            setPixel(data, img.frame.frameX, x, y, pixel);
+            setPixel(data, img.frame.outputX, x, y, pixel);
         }
     }
     ctx.putImageData(imgData, 0, 0);
@@ -616,9 +620,8 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
         let block;
         for (let y = 0; y < v; y++) {
             for (let x = 0; x < h; x++) {
+                // Block is the decoded image data. Store it in a component
                 block = decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable);
-                // TODO: Block is the decoded image data. Store it in a component
-                // Store in component.imgBuff
 
                 // Top-left coordinates of the block within the component
                 let topX = h * hMCU * DATA_UNIT_SIZE;
@@ -626,7 +629,7 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
                 let top = topY * v + topX;
 
                 for (let yy = 0; yy < DATA_UNIT_SIZE; yy++) {
-                    let blockLineStart = top + yy * 16; // TODO: Replace 16 with line stride of imgbuff
+                    let blockLineStart = top + yy * component.hSize;
                     for (let xx = 0; xx < DATA_UNIT_SIZE; xx++) {
                         let idx = blockLineStart + xx;
                         component.imgBuff[idx] = block[yy * DATA_UNIT_SIZE + xx];
@@ -1044,7 +1047,7 @@ function nextBit(reader, img) {
                     // TODO: End scan
                     console.warn("Found DNL marker in compressed data; not handled!");
                 } else if (byte2 >= 0xD0 && byte2 <= 0xD7) {
-                    // TODO: Handle reset (bytes D0-D7, marker RST0-RST7)
+                    // TODO: Handle restart marker (bytes D0-D7, marker RST0-RST7)
                     cnt = 0;
                 } else {
                     console.error("Error: Found unexpected marker in compressed data: " + byte2.toString(16));
@@ -1330,4 +1333,5 @@ function parseDNL(reader, img) {
     let frameY = reader.nextWord();
     console.log("Replacing frame # rows (frameY): old: " + img.frame.frameY + ", new: " + frameY);
     img.frame.frameY = frameY;
+    // TODO: Need to redo output image size, and probably other stuff too
 }
