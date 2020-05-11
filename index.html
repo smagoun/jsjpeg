@@ -1,0 +1,86 @@
+<html>
+<head>
+<title>Display a JPEG image</title>
+
+<script src="reader.js"></script>
+<script src="huffnode.js"></script>
+<script src="jsjpeg.js"></script>
+
+</head>
+<body>
+
+    <input type="file" accept="image/jpeg" id="inputImg" onchange="loadFile(event, 'original')">
+        <!-- Adapted from https://stackoverflow.com/questions/4459379/preview-an-image-before-it-is-uploaded -->
+        <script>
+            var maxWidth = 500;
+            var loadFile = function(event, targetID) {
+                var original = document.getElementById(targetID);
+                original.src = URL.createObjectURL(event.target.files[0]);
+                original.onload = function() {
+                    URL.revokeObjectURL(original.src); // free memory
+
+                    let canvas = document.getElementById("originalCanvas");
+
+                    let width = (this.width < maxWidth ? this.width : maxWidth);
+                    let height = this.height * (width / this.width);
+
+                    canvas.setAttribute("width", width);
+                    canvas.setAttribute("height", height);
+                    context = canvas.getContext('2d');
+                    context.drawImage(original, 0, 0, this.width, this.height, 0, 0, width, height);
+
+                    readFile(event.target.files[0]);
+                }
+            };
+        </script>
+    <div class="container">
+        <div class="imgholder">
+            <p>Original image</p>    
+            <img id="original" src="#" style="display: none">
+            <canvas id="originalCanvas"></canvas>
+        </div>
+        <div class="imgholder">
+            <p>Decoded image</p>    
+            <canvas id="outputCanvas"></canvas>
+        </div>
+    </div>
+    <div class="container">
+        <div class="imgholder">
+            <p>Component 0</p>
+            <p>Width: <span id="component0hsize"></span></p>
+            <p>Height: <span id="component0vsize"></span></p>
+            <canvas id="component0Canvas"></canvas>
+            <canvas id="component0RGBCanvas"></canvas>
+        </div>
+    </div>
+    <div class="container">
+        <div class="imgholder">
+            <p>Component 1</p>
+            <p>Width: <span id="component1hsize"></span></p>
+            <p>Height: <span id="component1vsize"></span></p>
+            <canvas id="component1Canvas"></canvas>
+            <canvas id="component1RGBCanvas"></canvas>
+        </div>
+    </div>
+    <div class="container">
+        <div class="imgholder">
+            <p>Component 2</p>
+            <p>Width: <span id="component2hsize"></span></p>
+            <p>Height: <span id="component2vsize"></span></p>
+            <canvas id="component2Canvas"></canvas>
+            <canvas id="component2RGBCanvas"></canvas>
+        </div>
+    </div>
+    <div class="container">
+        <div class="imgholder">
+            <p>Component 3</p>
+            <p>Width: <span id="component3hsize"></span></p>
+            <p>Height: <span id="component3vsize"></span></p>
+            <canvas id="component3Canvas"></canvas>
+            <canvas id="componentRGBCanvas"></canvas>
+        </div>
+    </div>
+
+
+</body>
+</html>
