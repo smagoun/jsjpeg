@@ -665,8 +665,7 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
 
 // F.2.2.1
 function decodeDCCoeff(reader, img, scan, id, huffTable) {
-    // let t = decodeHuffmanTree(reader, img, huffTree);
-    let t = decodeHuffman(reader, img, huffTable);
+    let t = huffTable.decodeHuffman(reader, img);
     let diff = receive(reader, img, t);
     diff = extend(diff, t);
     let dcpred = scan.dcpred[id];
@@ -686,7 +685,7 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
     // Decode AC coeffs for 8x8 block using AC table dest in scan header
     // F.2.2.2
     for (let k = 1; k < 64; k++) {
-        const rs = decodeHuffman(reader, img, acTable);
+        const rs = acTable.decodeHuffman(reader, img);
         // F.1.2.2
         const ssss = getLowNibble(rs);    // Amplitude of next non-zero coeff in ZZ
         const rrrr = getHighNibble(rs);   // Run length of zero coeffs in ZZ before next non-zero
@@ -986,67 +985,6 @@ function idct(coeffs) {
     return ret;
 }
 
-// F.2.2.3
-function decodeHuffmanTree(reader, img, huffTable) {
-    let bitString = "";     // For debugging
-    let node = huffTable;
-    while (true) {
-        let bit = nextBit(reader, img);
-        bitString += bit;
-        node = node.descendNode(bit);
-        if (node === undefined) {
-            console.error("Error: Couldn't find huffman value for huffman code " + bitString);
-            break;
-        } else if (node.data != undefined) {
-            // Found a value, so we're done!
-            // console.log("Found value " + node.data + " for huffman code " + bitString);
-            return node.data;
-        }
-    }
-    return undefined;
-}
-// F.2.2.3
-function decodeHuffman(reader, img, huffTable) {
-    let mincode = [];
-    let maxcode = [];
-    let valptr = [];
-
-    let i = 0;
-    let j = 0;
-    while (true) {
-        i++;
-        if (i > NUM_HUFFMAN_LENGTHS) {
-            break;
-        }
-        if (huffTable.bits[i] === 0) {
-            maxcode[i] = -1;
-        } else {
-            valptr[i] = j;
-            mincode[i] = huffTable.huffcode[j];
-            j += huffTable.bits[i] - 1;
-            maxcode[i] = huffTable.huffcode[j];
-            j++;
-        }
-    }
-
-    i = 1;
-    let bitString = "";
-    let code = nextBit(reader, img);
-    bitString += code;
-    while (code > maxcode[i]) {
-        i++;
-        let tmp = nextBit(reader, img);
-        // code = (code << 1) + nextBit(reader, img);
-        bitString += tmp;
-        code = (code << 1) + tmp;
-    }
-    j = valptr[i];
-    j += code - mincode[i];
-    let value = huffTable.huffval[j];
-    // console.log("Found value " + value + " for code " + code + " bitString: " + bitString);
-    return value;
-}
-
 // TODO: Maintain state (cnt, byte) somewhere else - in a class? Move this fn to reader class?
 let cnt = 0;
 let byte = 0;
@@ -1244,82 +1182,27 @@ function parseHuffmanTable(marker, reader, img) {
         for (let i = 1; i <= NUM_HUFFMAN_LENGTHS; i++) {    // 1-indexed to match JPEG spec
             bits[i] = reader.nextByte();
         }
-        table.bits = bits;
         console.log("Huffman table class: " + tableClass + ", dest: " + destID + " lengths:" + bits);
 
-        let root = new HuffNode(0);
-        /* Disabled for testing, since we read the code + fill the tree in the
-           "Read code values..." block below
-        for (let i = 1; i <= bits.length; i++) {    // i is level in tree
-            for (let j = 0; j < bits[i]; j++) {
-                // bits[i] = # of codes of length i
-                root.insertCode(i, reader.nextByte());
-            }
-        }*/
-
-        // Read code values for each length (Vi,j)
-        let huffval = [];
+        // Read code values for each length (Vi,j) and push them into the Huffman decoder
+        let decoderType = document.querySelector('input[name="huffmanType"]:checked').value;
+        let huffDecoder = decoderType === "tree" ? new HuffTree() : new HuffArray();
+        huffDecoder.initDecoder(bits);
         let numCodes = 0;
         for (let i = 1; i <= NUM_HUFFMAN_LENGTHS; i++) {    // 1-indexed to match JPEG spec
             for (let j = 0; j < bits[i]; j++) {
                 let code = reader.nextByte();
-                huffval.push(code);
-                root.insertCode(i, code);
+                huffDecoder.insertCode(i, code);
                 numCodes++;
             }
         }
-        table.huffval = huffval;
-        console.log("HUFFVAL: " + huffval);
-
-        // Generate code sizes (JPEG Spec Fig. C.1)
-        let k = 0;
-        let lastk = 0;
-        let huffsize = [];
-        for (let i = 1; i <= NUM_HUFFMAN_LENGTHS; i++) {
-            for (let j = 1; j <= bits[i]; j++) {
-                huffsize[k++] = i;
-            }
-        }
-        huffsize[k] = 0;
-        lastk = k;
-        table.huffsize = huffsize;
-        console.log("HUFFSIZE: " + huffsize);
-
-        // Generate codes (JPEG Spec Fig. C.2)
-        let huffcode = [];
-        k = 0;
-        let code = 0;
-        let si = huffsize[0];
-
-        while (huffsize[k] != 0) {
-            while (huffsize[k] === si) {
-                huffcode[k++] = code++;
-            }
-            code = code << 1;
-            si++;
-        }
-        table.huffcode = huffcode;
-        console.log("HUFFCODE: " + huffcode.map(x => x.toString(2)));
-
-        // Generate codes in symbol value order
-        /* Not clear we need this for anything? Only used for encoding?
-        let ehufco = [];
-        let ehufsi = [];
-        k = 0;
-        while (k < lastk) {
-            i = huffval[k];
-            ehufco[i] = huffcode[k];
-            ehufsi[i] = huffsize[k];
-            k++;
-        }*/        
 
         let tableLength = NUM_HUFFMAN_LENGTHS + numCodes + 1;   // +1 for the precision+dest
         if (tableLength > length) {
             console.error("Error: huffman table extends past end of " + marker +  " marker segment");
         }
 
-        img.huffmanTables[tableClass][destID] = table;
-        img.huffmanTrees[tableClass][destID] = root;
+        img.huffmanTables[tableClass][destID] = huffDecoder;
         length = length - tableLength;
     }
 }

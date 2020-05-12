@@ -3,7 +3,8 @@
 <title>Display a JPEG image</title>
 
 <script src="reader.js"></script>
-<script src="huffnode.js"></script>
+<script src="hufftree.js"></script>
+<script src="huffarray.js"></script>
 <script src="jsjpeg.js"></script>
 <style>
     .imgholder{
@@ -43,6 +44,16 @@
                 }
             };
         </script>
+    <div class="container">
+        <p>Select Huffman Decoder implementation:<br>
+            <input type="radio" name="huffmanType" value="array" id="huffArray" checked>
+            <label for="huffArray">Array (default, from JPEG spec)</label>
+            <br>
+            <input type="radio" name="huffmanType" value="tree" id="huffTree">
+            <label for="huffTree">Binary Tree</label>
+        </p>
+    </div>
+
     <div class="container">
         <div class="imgholder input">
             <p>Original image<br>

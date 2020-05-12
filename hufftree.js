@@ -15,15 +15,32 @@
  * branch in order of descent.
  * 
  */
-class HuffNode {
+class HuffTree {
 
-    constructor(level) {
+    /**
+     * Create a new node in the Huffman tree
+     * 
+     * @param {Number} level Optional level of the tree. Defaults to 0 (for the root)
+     */
+    constructor(level = 0) {
         this.level = level;
+    }
+    
+    /**
+     * Initialize the decoder with the 'BITS' array containing the number of huffman codes
+     * of each length.
+     * 
+     * @param {Array} bits List of the number of Huffman codes of each length (0-NUM_HUFFMAN_LENGTHS)
+     */
+    initDecoder(bits) {
+        // NOOP, since this implementation supports arbitrary tree sizes
     }
 
     /**
      * Insert a value into the tree at the given depth. Uses a level-order
      * traversal to fill the tree from left to right at a given level.
+     * 
+     * Returns 'true' if inserting the value was successful, otherwise false
      * 
      * @param {*} codeLength Depth of the tree at which to insert (length of huffman code)
      * @param {*} value Value to insert into the tree
@@ -43,8 +60,8 @@ class HuffNode {
             if (this.left === undefined) {
                 // Invariant: nodes always created in pairs.
                 // Saves us from lots of checking for 'undefined' elsewhere
-                this.left = new HuffNode(this.level + 1);
-                this.right = new HuffNode(this.level + 1);
+                this.left = new HuffTree(this.level + 1);
+                this.right = new HuffTree(this.level + 1);
                 return this.left.insertCode(codeLength, value);
             } else {
                 if (this.left.insertCode(codeLength, value)) {
@@ -54,6 +71,35 @@ class HuffNode {
                 }
             }
         }
+    }
+
+
+    /**
+     * Read the next huffman code from the data source and return the
+     * value represented by the code.
+     * 
+     * F.2.2.3
+     * 
+     * @param {DataViewReader} reader Data source
+     * @param {*} img Struct containing information about the image
+     */
+    decodeHuffman(reader, img) {
+        let bitString = "";     // For debugging
+        let node = this;
+        while (true) {
+            let bit = nextBit(reader, img);
+            bitString += bit;
+            node = node.descendNode(bit);
+            if (node === undefined) {
+                console.error("Error: Couldn't find huffman value for huffman code " + bitString);
+                break;
+            } else if (node.data != undefined) {
+                // Found a value, so we're done!
+                // console.log("Found value " + node.data + " for huffman code " + bitString);
+                return node.data;
+            }
+        }
+        return undefined;
     }
 
     /**
@@ -114,7 +160,7 @@ class HuffNode {
     }
 
     static test() {
-        let tree = new HuffNode(0);
+        let tree = new HuffTree(0);
         let testCnt = 0;
         let errCnt = 0;
 
@@ -181,4 +227,4 @@ class HuffNode {
     }
 }
 
-// HuffNode.test();
+// HuffTree.test();
