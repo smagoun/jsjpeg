@@ -184,14 +184,15 @@ function parseFile(data) {
             seenSOF = true;
             decodeFrame(marker, reader, img);
         } else if (marker.startsWith("RST")) {
-            // TODO: Need to parse this!
+            // TODO: Need to parse this! (We shouldn't come across an RST in this code
+            // path; it should be found + consumed during processing of a scan)
             parseUnsupportedSegment(marker, reader);
         } else if (marker === "EOI*") {
             console.log("Found EOI marker. Bye!");
             break;
         } else if (marker === "SOS") {
-            let scan = parseStartOfSequence(marker, reader);
-            decodeScan(marker, reader, img, scan);
+            img.scan = parseStartOfSequence(marker, reader);
+            decodeScan(marker, reader, img, img.scan);
         } else if (marker === "DNL") {
             parseDNL(reader, img);
         } else if (marker === "DHP") {
@@ -410,11 +411,6 @@ function setPixel(data, hSize, x, y, pixel) {
  * @param {DataViewReader} reader 
  */
 function decodeScan(marker, reader, img, scan) {
-    if (img.restartInterval === 0) {
-        console.warn("Restart interval is 0!");
-        // return;  // Not an error, just means restarts are disabled?
-    }
-
     // Scratch space for DC predictor. Index by component ID (therefore usually 1-indexed)
     scan.dcpred = [];
 
@@ -433,20 +429,33 @@ function decodeScan(marker, reader, img, scan) {
     // Image components in the order specified by the scan selector
     scan.orderedComponents = components;
     
-    // Note: data is always interleaved if there are more than 1 component (A.2)
-    // TODO figure out what to do with/about restart intervals
-    // if (img.restartInterval === 0) {
-        // decodeMCU(reader, img, scan);
-    // } else {
-        // for (let i = 0; i < img.restartInterval; i++) {
-            // Read compressed data; decode it....
-            for (let v = 0; v < img.frame.vMCUS; v++) { 
-                for (let h = 0; h < img.frame.hMCUs; h++) {
-                    decodeMCU(reader, img, scan, v, h);
+    // Note: data is always interleaved if there is more than 1 component (A.2)
+    // Read compressed data; decode it....
+    let mcuIndex = 0;
+    for (let v = 0; v < img.frame.vMCUS; v++) {
+        for (let h = 0; h < img.frame.hMCUs; h++) {
+            console.log("Decoding MCU " + mcuIndex);
+            if (img.restartInterval > 0 && mcuIndex > 0 && (mcuIndex % img.restartInterval) === 0) {
+                // Look for a restart marker; file is likely corrupt if we don't find one
+                let byte = reader.nextByte();
+                if (byte != 0xFF) {
+                    console.error("Expected 0xFF when looking for restart marker, found "
+                        + byte.toString(16));
                 }
+                byte = reader.nextByte();
+                if (byte >= 0xD0 && byte <= 0xD7) {
+                    console.log("Restart marker " + byte.toString(16) + ", resetting decoder");
+                } else {
+                    console.error("Found unexpected marker when looking for reset: " + byte.toString(16));
+                }
+                // Found restart marker, so reset decoder (F.2.1.3.1)
+                scan.dcpred.fill(0);
+                cnt = 0;    // Globals, eew
             }
-        // }
-    // }
+            decodeMCU(reader, img, scan, v, h);
+            mcuIndex++;
+        }
+    }
 
     // Draw the components
     // TODO: Colorspace conversion; merge components into RBGA
@@ -1047,8 +1056,13 @@ function nextBit(reader, img) {
                     // TODO: End scan
                     console.warn("Found DNL marker in compressed data; not handled!");
                 } else if (byte2 >= 0xD0 && byte2 <= 0xD7) {
-                    // TODO: Handle restart marker (bytes D0-D7, marker RST0-RST7)
-                    cnt = 0;
+                    // Handle restart marker (bytes D0-D7, marker RST0-RST7):
+                    console.warn("Found RST marker in nextBit()");
+                    // Byte-align
+                    cnt = 1;    // Set to '1' since we'll decrement at the end of the function. Gross.
+                    // Reset DC predictors (E.2.4 / F.2.1.3.1)
+                    img.scan.dcpred.fill(0);
+                    byte = reader.nextByte();
                 } else {
                     console.error("Error: Found unexpected marker in compressed data: " + byte2.toString(16));
                 }
