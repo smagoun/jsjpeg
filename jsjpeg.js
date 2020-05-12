@@ -435,7 +435,7 @@ function decodeScan(marker, reader, img, scan) {
     let mcuIndex = 0;
     for (let v = 0; v < img.frame.vMCUS; v++) {
         for (let h = 0; h < img.frame.hMCUs; h++) {
-            console.log("Decoding MCU " + mcuIndex);
+            // console.log("Decoding MCU " + mcuIndex);
             if (img.restartInterval > 0 && mcuIndex > 0 && (mcuIndex % img.restartInterval) === 0) {
                 // Look for a restart marker; file is likely corrupt if we don't find one
                 let byte = reader.nextByte();
@@ -445,7 +445,7 @@ function decodeScan(marker, reader, img, scan) {
                 }
                 byte = reader.nextByte();
                 if (byte >= 0xD0 && byte <= 0xD7) {
-                    console.log("Restart marker " + byte.toString(16) + ", resetting decoder");
+                    // console.log("Restart marker " + byte.toString(16) + ", resetting decoder");
                 } else {
                     console.error("Found unexpected marker when looking for reset: " + byte.toString(16));
                 }
@@ -658,10 +658,6 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
                         component.imgBuff[idx] = block[yy * DATA_UNIT_SIZE + xx];
                     }
                 }
-                // X position of this block in the component:
-                // (x * 8) - position of pixels of this block within the MCU
-                // Position of the top left corner of the MCU - #MCU * factor * 8
-                
             }
         }
     }
@@ -674,7 +670,7 @@ function decodeDCCoeff(reader, img, scan, id, huffTable) {
     let diff = receive(reader, img, t);
     diff = extend(diff, t);
     let dcpred = scan.dcpred[id];
-    console.log("DC Coeff: val: " + t + ", diff: " + diff + ", pred: " + dcpred);
+    // console.log("DC Coeff: val: " + t + ", diff: " + diff + ", pred: " + dcpred);
     return dcpred + diff;
 }
 
@@ -696,11 +692,11 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
         const rrrr = getHighNibble(rs);   // Run length of zero coeffs in ZZ before next non-zero
         if (ssss === 0) {
             if (rrrr === 0xF) {
-                console.log("ZRL");
+                // console.log("ZRL");
                 k += 15;
                 continue;
             } else if (rrrr === 0) {
-                console.log("EOB");
+                // console.log("EOB");
                 break;
             } else {
                 // Other values undefined for Baseline 
@@ -716,7 +712,7 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
             zigzagCoeff[k] = sign;
         }
     }
-    console.log("ZZ:" + zigzagCoeff);
+    // console.log("ZZ:" + zigzagCoeff);
 
     // Dequantize using table dest in frame header (F.2.1.4)
     // Multiply each coefficient by the corresponding 
@@ -725,7 +721,7 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
 
     // Reorder coefficients (de-zig-zag)
     reordered = reorder(zigzagCoeff);
-    console.log("Reordered:" + reordered);
+    // console.log("Reordered:" + reordered);
 
 
     // Calculate inverse IDCT on dequantized values (F.2.1.5)
@@ -957,7 +953,7 @@ function compareOutput(testName, expected, output) {
         }
         if (!ok) {
             errCnt++;
-            console.log("Error: " + testName + " output[" + i + "]:" + out + " doesn't match expected value of " + ex);
+            console.error("Error: " + testName + " output[" + i + "]:" + out + " doesn't match expected value of " + ex);
         }
     }
     console.log(testName + " tests " + (errCnt === 0 ? "passed!" : " failed with " + errCnt + " failures"));
