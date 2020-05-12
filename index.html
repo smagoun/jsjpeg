@@ -6,7 +6,9 @@
 <script src="reader.js"></script>
 <script src="hufftree.js"></script>
 <script src="huffarray.js"></script>
+<script src="idct.js"></script>
 <script src="jsjpeg.js"></script>
+<script src="test.js"></script>
 <style>
     .imgholder{
         padding: 10px;
@@ -81,20 +83,11 @@
     </div>
     <div class="container">
         <div class="imgholder component">
-            <p>Component 0<br>
-            Width: <span id="component0hsize"></span><br>
-            Height: <span id="component0vsize"></span></p>
-            <canvas id="component0Canvas"></canvas>
-            <canvas id="component0RGBCanvas"></canvas>
-        </div>
-    </div>
-    <div class="container">
-        <div class="imgholder component">
             <p>Component 1<br>
             Width: <span id="component1hsize"></span><br>
             Height: <span id="component1vsize"></span></p>
             <canvas id="component1Canvas"></canvas>
-            <canvas id="component1RGBCanvas"></canvas>
+            <canvas id="component1ScaledCanvas"></canvas>
         </div>
     </div>
     <div class="container">
@@ -103,7 +96,7 @@
             Width: <span id="component2hsize"></span></br>
             Height: <span id="component2vsize"></span></p>
             <canvas id="component2Canvas"></canvas>
-            <canvas id="component2RGBCanvas"></canvas>
+            <canvas id="component2ScaledCanvas"></canvas>
         </div>
     </div>
     <div class="container">
@@ -112,7 +105,16 @@
             Width: <span id="component3hsize"></span><br>
             Height: <span id="component3vsize"></span></p>
             <canvas id="component3Canvas"></canvas>
-            <canvas id="componentRGBCanvas"></canvas>
+            <canvas id="component3ScaledCanvas"></canvas>
+        </div>
+    </div>
+    <div class="container">
+        <div class="imgholder component">
+            <p>Component 4<br>
+            Width: <span id="component4hsize"></span><br>
+            Height: <span id="component4vsize"></span></p>
+            <canvas id="component4Canvas"></canvas>
+            <canvas id="component4ScaledCanvas"></canvas>
         </div>
     </div>
 
