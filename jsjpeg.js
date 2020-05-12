@@ -657,15 +657,10 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
 function decodeDCCoeff(reader, img, scan, id, huffTable) {
     // let t = decodeHuffmanTree(reader, img, huffTree);
     let t = decodeHuffman(reader, img, huffTable);
-    // console.log("Next huffman value: " + t);
-
     let diff = receive(reader, img, t);
-    // console.log("diff: " + diff);
-
     diff = extend(diff, t);
-    // console.log("extended diff: " + diff);
-
     let dcpred = scan.dcpred[id];
+    console.log("DC Coeff: val: " + t + ", diff: " + diff + ", pred: " + dcpred);
     return dcpred + diff;
 }
 
@@ -704,10 +699,10 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
             const amp = receive(reader, img, ssss);
             const sign = extend(amp, ssss);
             // console.log("AC[" + k + "]: (" + amp + ", " + sign + ")");
-            zigzagCoeff[k] = [amp, sign];
+            zigzagCoeff[k] = sign;
         }
     }
-    // console.log("ZZ:" + zigzagCoeff);
+    console.log("ZZ:" + zigzagCoeff);
 
     // Dequantize using table dest in frame header (F.2.1.4)
     // Multiply each coefficient by the corresponding 
@@ -716,6 +711,8 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
 
     // Reorder coefficients (de-zig-zag)
     reordered = reorder(zigzagCoeff);
+    console.log("Reordered:" + reordered);
+
 
     // Calculate inverse IDCT on dequantized values (F.2.1.5)
     let block = idct(reordered);
