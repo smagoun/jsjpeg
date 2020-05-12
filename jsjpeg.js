@@ -697,7 +697,7 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
         if (ssss === 0) {
             if (rrrr === 0xF) {
                 console.log("ZRL");
-                k += 16;
+                k += 15;
                 continue;
             } else if (rrrr === 0) {
                 console.log("EOB");
