@@ -1143,9 +1143,6 @@ function parseHuffmanTable(marker, reader, img) {
     if (img.huffmanTables === undefined) {
         img.huffmanTables = [ [], [] ];    // DC + AC
     }
-    if (img.huffmanTrees === undefined) {
-        img.huffmanTrees = [ [], [] ];    // DC + AC
-    }
 
     // Read a segment
     length = length - 2;
