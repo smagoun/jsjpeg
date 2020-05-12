@@ -663,9 +663,22 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
     }
 }
 
-// F.2.2.1
-function decodeDCCoeff(reader, img, scan, id, huffTable) {
-    let t = huffTable.decodeHuffman(reader, img);
+/**
+ * Read and decode the DC coefficient from the bit stream. Side effect is that it loads the 
+ * 
+ * Returns the DC coefficient
+ * 
+ * F.2.2.1
+ * 
+ * @param {DataViewReader} reader Data source
+ * @param {*} img Struct containing information about the image
+ * @param {*} scan Struct containing information about the scan (specifically the table of DC predictors)
+ * @param {*} id ID of the current component. Used to look up the current DC predictor
+ * @param {Array} zigzagCoeff 64-element array where we store the AC coefficients
+ * @param {*} dcTable Huffman table implementation for DC coefficients
+ */
+function decodeDCCoeff(reader, img, scan, id, dcTable) {
+    let t = dcTable.decodeHuffman(reader, img);
     let diff = receive(reader, img, t);
     diff = extend(diff, t);
     let dcpred = scan.dcpred[id];
@@ -673,17 +686,18 @@ function decodeDCCoeff(reader, img, scan, id, huffTable) {
     return dcpred + diff;
 }
 
-// F.2.1.2
-function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
-    // 8x8 table of DC/AC coeffs
-    const zigzagCoeff = new Array(64).fill(0);
-
-    // Decode DC Coeff for 8x8 block using DC table dest in scan header
-    zigzagCoeff[0] = decodeDCCoeff(reader, img, scan, id, dcTable);
-    scan.dcpred[id] = zigzagCoeff[0];
-
-    // Decode AC coeffs for 8x8 block using AC table dest in scan header
-    // F.2.2.2
+/**
+ * Read and decode the AC coefficients from the bit stream and load them into
+ * the array of zig-zag'ed coefficients
+ * 
+ * F.2.2.2
+ * 
+ * @param {DataViewReader} reader Data source
+ * @param {*} img Struct containing information about the image
+ * @param {Array} zigzagCoeff 64-element array where we store the AC coefficients
+ * @param {*} acTable Huffman table implementation for AC coefficients
+ */
+function decodeACCoeffs(reader, img, zigzagCoeff, acTable) {
     for (let k = 1; k < 64; k++) {
         const rs = acTable.decodeHuffman(reader, img);
         // F.1.2.2
@@ -703,7 +717,7 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
             }
         } else {
             k += rrrr;
-            // decode_zz(reader, img, ssss, k);
+            // Implements the 'DECODE_ZZ' function from Figure F.14
             // Decode amplitude + sign
             const amp = receive(reader, img, ssss);
             const sign = extend(amp, ssss);
@@ -711,7 +725,37 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
             zigzagCoeff[k] = sign;
         }
     }
-    // console.log("ZZ:" + zigzagCoeff);
+}
+
+/**
+ * Read and decode a single 8x8 data unit. In order, we:
+ * - Decode the DC coefficient
+ * - Decode the 63 AC coefficients
+ * - Dequantize the 64 coefficients
+ * - Convert coefficients from zig-zag order to sequential order
+ * - Perform Inverse DCT (IDCT)
+ * - Recenter the coefficients
+ * 
+ * F.2.1.2
+ * 
+ * @param {*} reader Data source
+ * @param {*} img Struct with information about the image, including frame + components
+ * @param {*} scan Struct with information about this scan
+ * @param {*} id ID of the current component. Used to look up the current DC predictor
+ * @param {*} dcTable Huffman table to use for decoding DC coefficients
+ * @param {*} acTable Huffamn table to use for decoding AC coefficients
+ * @param {*} quantTable Quantization table for this block
+ */
+function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
+    // 8x8 table of DC/AC coeffs
+    const zigzagCoeff = new Array(64).fill(0);
+
+    // Decode DC Coeff for 8x8 block using DC table dest in scan header
+    zigzagCoeff[0] = decodeDCCoeff(reader, img, scan, id, dcTable);
+    scan.dcpred[id] = zigzagCoeff[0];
+
+    // Decode AC coeffs for 8x8 block using AC table dest in scan header
+    decodeACCoeffs(reader, img, zigzagCoeff, acTable);
 
     // Dequantize using table dest in frame header (F.2.1.4)
     // Multiply each coefficient by the corresponding 
@@ -721,7 +765,6 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
     // Reorder coefficients (de-zig-zag)
     reordered = reorder(zigzagCoeff);
     // console.log("Reordered:" + reordered);
-
 
     // Calculate inverse IDCT on dequantized values (F.2.1.5)
     let block = idct(reordered);
@@ -1045,13 +1088,6 @@ function receive(reader, img, ssss) {
     }
     return v;
 }
-
-// Figure F.14
-function decode_zz(reader, img, ssss, k) {
-    zz(k) = receive(reader, img, ssss);
-    zz(k) = extend(zz(k), ssss);
-}
-
 
 /**
  * Parse App segment
