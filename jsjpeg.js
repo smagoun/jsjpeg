@@ -550,6 +550,8 @@ function decodeScan(marker, reader, img, scan) {
     }
     ctx.putImageData(imgData, 0, 0);
 
+    document.getElementById("outputhsize").textContent = img.frame.outputX;
+    document.getElementById("outputvsize").textContent = img.frame.outputY;
     
     /*
     decode_scan() {
