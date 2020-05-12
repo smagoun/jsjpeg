@@ -366,7 +366,7 @@ function parseStartOfSequence(marker, reader, img) {
         console.error("Expected SS=0, got " + ss + ". Not a sequential DCT scan?");
     }
     let se = reader.nextByte();    // End of predictor selection
-    if (ss != 0) {
+    if (se != 63) {
         console.error("Expected SE=63, got " + se + ". Not a sequential DCT scan?");
     }
     let tmp = reader.nextByte();
