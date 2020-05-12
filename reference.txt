@@ -1,0 +1,24 @@
+== Specifications ==
+JPEG spec:
+https://www.w3.org/Graphics/JPEG/itu-t81.pdf
+
+JFIF spec:
+https://www.w3.org/Graphics/JPEG/jfif3.pdf
+
+
+== Documentation ==
+
+Wikipedia
+https://en.wikipedia.org/wiki/JPEG
+
+Step-by-step walkthrough of huffman codes (has simple example image too):
+https://www.impulseadventure.com/photo/jpeg-huffman-coding.html
+
+Writeup of student project:
+http://www.ctralie.com/PrincetonUGRAD/Projects/JPEG/jpeg.pdf
+
+
+== Code examples ==
+picodec (python decoder):
+https://github.com/yohhoy/picojdec/
+
