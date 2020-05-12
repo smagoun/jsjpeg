@@ -43,6 +43,9 @@ function getLowNibble(byte) {
 }
 
 
+/**
+ * Generate lookup table for marker codes (Table B.1)
+ */
 function createMarkerCodeTable() {
     // Code assignments
     codes = new Map([
@@ -342,7 +345,7 @@ function decodeFrame(marker, reader, img) {
 
 
 /**
- * Parse Start of Sequence marker
+ * Parse Start of Sequence (scan) marker.
  * 
  * @param {String} marker Name of the segment
  * @param {DataViewReader} reader 
@@ -412,7 +415,7 @@ function setPixel(data, hSize, x, y, pixel) {
  * @param {DataViewReader} reader 
  */
 function decodeScan(marker, reader, img, scan) {
-    // Scratch space for DC predictor. Index by component ID (therefore usually 1-indexed)
+    // Scratch space for DC predictor. Indexed by component ID (therefore usually 1-indexed)
     scan.dcpred = [];
 
     // Chose IDCT function
@@ -583,7 +586,13 @@ function decodeScan(marker, reader, img, scan) {
         }*/
 }
 
-// JFIF Spec
+/**
+ * Perform YCbCr to RGB colorspace conversion using the algorithm in the JFIF spec.
+ * 
+ * @param {*} Y 
+ * @param {*} Cb 
+ * @param {*} Cr 
+ */
 function YCbCrToRGB(Y, Cb, Cr) {
     let pixel = [0, 0, 0, 255];
     pixel[0] = clamp(Math.round(Y + (1.402 * (Cr - 128))));
@@ -756,11 +765,11 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
     // 8x8 table of DC/AC coeffs
     const zigzagCoeff = new Array(64).fill(0);
 
-    // Decode DC Coeff for 8x8 block using DC table dest in scan header
+    // Decode DC Coeff for 8x8 block using DC table dest in scan header (F.2.2.1)
     zigzagCoeff[0] = decodeDCCoeff(reader, img, scan, id, dcTable);
     scan.dcpred[id] = zigzagCoeff[0];
 
-    // Decode AC coeffs for 8x8 block using AC table dest in scan header
+    // Decode AC coeffs for 8x8 block using AC table dest in scan header (F.2.2.2)
     decodeACCoeffs(reader, img, zigzagCoeff, acTable);
 
     // Dequantize using table dest in frame header (F.2.1.4)
@@ -780,14 +789,28 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
     return block;
 }
 
-// In-place
+/**
+ * Perform level-shift of coefficients in the block. Operates in-place.
+ * 
+ * F.2.1.5
+ * 
+ * @param {*} block 
+ */
 function levelShift(block) {
     for (let i = 0; i < block.length; i++) {
         block[i] += 128;
     }
 }
 
-// Returns new array
+/**
+ * Reorder the coefficients into their natural order (de-zig-zag)
+ * 
+ * Not clearly specified, but clearly necessary.
+ * 
+ * Returns a new array of coefficients
+ * 
+ * @param {*} coeff 
+ */
 function reorder(coeff) {
     let reordered = new Array(coeff.length);
     for (let i = 0; i < coeff.length; i++) {
@@ -796,7 +819,15 @@ function reorder(coeff) {
     return reordered;
 }
 
-// In-place
+/**
+ * Dequantize the components in the table using the values from the 
+ * given quantization table. Operates in-place.
+ * 
+ * F.2.1.4
+ * 
+ * @param {*} zigzagCoeff 
+ * @param {*} quantTable 
+ */
 function dequantize(zigzagCoeff, quantTable) {
     for (let i = 0; i < zigzagCoeff.length; i++) {
         zigzagCoeff[i] = zigzagCoeff[i] * quantTable[i];
