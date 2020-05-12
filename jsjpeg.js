@@ -23,6 +23,16 @@ const NUM_HUFFMAN_LENGTHS = 16;
 
 const DATA_UNIT_SIZE = 8;
 
+/**
+ * Constant used in IDCT
+ */
+const INV_SQRT2 = 1 / Math.SQRT2;
+
+/**
+ * Precalcuated values for speeding up IDCT
+ */
+let idctCache;
+
 let img = {};
 
 /**
@@ -415,6 +425,10 @@ function decodeScan(marker, reader, img, scan) {
     // Scratch space for DC predictor. Index by component ID (therefore usually 1-indexed)
     scan.dcpred = [];
 
+    // Chose IDCT function
+    let idctType = document.querySelector('input[name="idctType"]:checked').value;
+    idctFn = idctType === "cached" ? idctCached : idct;
+
     // Order components in order specified by scan selector (B.2.3)
     let components = [];
     for (selector of scan.components) {
@@ -767,7 +781,7 @@ function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
     // console.log("Reordered:" + reordered);
 
     // Calculate inverse IDCT on dequantized values (F.2.1.5)
-    let block = idct(reordered);
+    let block = idctFn(reordered);
     
     // Level-shift (F.2.1.5)
     levelShift(block);
@@ -943,7 +957,7 @@ function testDequantize() {
     compareOutput(testName, expected, coeffs);
 }
 
-function testIDCT() {
+function testIDCT(fn) {
     // Example data from https://en.wikipedia.org/wiki/JPEG#Decoding
     let input = [
         -416, -33, -60,  32,  48, -40,   0,   0,
@@ -955,7 +969,7 @@ function testIDCT() {
            0,   0,   0,   0,   0,   0,   0,   0,
            0,   0,   0,   0,   0,   0,   0,   0,
     ];
-    let output = idct(input);
+    let output = fn(input);
     let expected = [
          -66, -63, -71, -68, -56, -65, -68, -46,
          -71, -73, -72, -46, -20, -41, -66, -57,
@@ -972,7 +986,10 @@ function testIDCT() {
 testExtend();
 testDequantize();
 testReorder();
-testIDCT();
+let idctFn = idct;
+testIDCT(idct);
+idctFn = idctCached;
+testIDCT(idctFn);
 testLevelShift();
 testYCbCrToRGB();
 
@@ -1006,23 +1023,77 @@ function clamp(val) {
     return (val > 255 ? 255 : (val < 0 ? 0 : val));
 }
 
+
+/**
+ * 'C' function defined in the IDCT operation
+ * 
+ * @param {*} val 
+ */
 function C(val) {
-    return (val === 0 ? 1/Math.SQRT2 : 1);
+    return (val === 0 ? INV_SQRT2 : 1);
 }
 
+/**
+ * Implement the Inverse Discrete Cosine Transformation defined in the JPEG spec.
+ * Naïve implementation that does not use caching, so it's slow.
+ * 
+ * Returns an array of the IDCT'ed coefficients
+ * 
+ * @param {*} coeffs Array of 64 coefficients to be processed
+ */
 function idct(coeffs) {
     let ret = new Array(coeffs.length);
-    for (let y = 0; y < DATA_UNIT_SIZE; y++) {
+    for (let y = 0, ystart = 0; y < DATA_UNIT_SIZE; y++, ystart += DATA_UNIT_SIZE) {
         for (let x = 0; x < DATA_UNIT_SIZE; x++) {
             let sum = 0;
-            for (let v = 0; v < DATA_UNIT_SIZE; v++) {
+            for (let v = 0, vstart = 0; v < DATA_UNIT_SIZE; v++, vstart += DATA_UNIT_SIZE) {
                 for (let u = 0; u < DATA_UNIT_SIZE; u++) {
-                    sum += C(u) * C(v) * coeffs[v * DATA_UNIT_SIZE + u]
+                    sum += C(u) * C(v) * coeffs[vstart + u]
                         * Math.cos((((2*x)+1) * u * Math.PI) / 16)
                         * Math.cos((((2*y)+1) * v * Math.PI) / 16);
                 }
             }
-            ret[y * DATA_UNIT_SIZE + x] = Math.round(sum / 4);
+            ret[ystart + x] = Math.round(sum / 4);
+        }
+    }
+    return ret;
+}
+
+/**
+ * Initialized cache of precomputed values for IDCT 
+ */
+function initIDCTCache() {
+    idctCache = [
+        [], [], [], [], [], [], [], [],
+    ];
+    for (let j = 0; j < DATA_UNIT_SIZE; j++) {
+        for (let i = 0; i < DATA_UNIT_SIZE; i++) {
+            idctCache[i][j] = Math.cos((((2*i)+1) * j * Math.PI) / 16);
+        }
+    }
+}
+
+/**
+ * Implement the Inverse Discrete Cosine Transformation defined in the JPEG spec.
+ * 
+ * Returns an array of the IDCT'ed coefficients
+ * 
+ * @param {*} coeffs Array of 64 coefficients to be processed
+ */
+function idctCached(coeffs) {
+    if (idctCache === undefined) {
+        initIDCTCache();
+    }
+    let ret = new Array(coeffs.length);
+    for (let y = 0, ystart = 0; y < DATA_UNIT_SIZE; y++, ystart += DATA_UNIT_SIZE) {
+        for (let x = 0; x < DATA_UNIT_SIZE; x++) {
+            let sum = 0;
+            for (let v = 0, vstart = 0; v < DATA_UNIT_SIZE; v++, vstart += DATA_UNIT_SIZE) {
+                for (let u = 0; u < DATA_UNIT_SIZE; u++) {
+                    sum += C(u) * C(v) * coeffs[vstart + u] * idctCache[x][u] * idctCache[y][v];
+                }
+            }
+            ret[ystart + x] = Math.round(sum / 4);
         }
     }
     return ret;

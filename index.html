@@ -1,6 +1,7 @@
 <html>
 <head>
 <title>Display a JPEG image</title>
+<meta charset="UTF-8">
 
 <script src="reader.js"></script>
 <script src="hufftree.js"></script>
@@ -53,6 +54,15 @@
             <label for="huffTree">Binary Tree</label>
         </p>
     </div>
+    <div class="container">
+        <p>Select IDCT implementation:<br>
+            <input type="radio" name="idctType" value="calculated" id="idctCalc" checked>
+            <label for="idctCalc">Naïve implementation (no caching)</label>
+            <br>
+            <input type="radio" name="idctType" value="cached" id="idctCached">
+            <label for="idctCached">Use pre-calculated values (faster)</label>
+        </p>
+    </div>    
 
     <div class="container">
         <div class="imgholder input">
