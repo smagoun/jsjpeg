@@ -296,7 +296,7 @@ function decodeFrame(marker, reader, img) {
     // Set up output buffers for each component
     for (component of components) {
         // TODO: Make this a UInt8 array?
-        component.imgBuff = new Array(component.hSize * component.vSize); // component x * y
+        component.imgBuff = new Array(component.hSize * component.vSize).fill(0); // component x * y
     }
 
 
@@ -623,24 +623,38 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
         let acTable = img.huffmanTables[1][acTableID];
         let quantTable = img.quantTables[component.quantTableID];
         
-        // # of H,V blocks (data units) in the component
+        // # of H,V blocks (data units) per MCU in the component
         let h = component.hSampleFactor;
         let v = component.vSampleFactor;
+        let mcuWidth = h * DATA_UNIT_SIZE;  // Width of the MCU in pixels
+        let mcuHeight = v * DATA_UNIT_SIZE; // Height of the MCU in pixels
         let block;
-        for (let y = 0; y < v; y++) {
-            for (let x = 0; x < h; x++) {
+        for (let y = 0; y < v; y++) {   // Iterate over blocks in the MCU
+            for (let x = 0; x < h; x++) {   // Iterate over blocks in the MCU
                 // Block is the decoded image data. Store it in a component
                 block = decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable);
 
-                // Top-left coordinates of the block within the component
-                let topX = h * hMCU * DATA_UNIT_SIZE;
-                let topY = v * vMCU * DATA_UNIT_SIZE;
-                let top = topY * v + topX;
+                // Top-left pixel coordinates of the MCU within the component
+                // mcuY: # vert MCUs * v blocks/MCU * block size * line stride of component
+                let mcuY = vMCU * v * DATA_UNIT_SIZE * component.hSize;
+                // mcuX: mcuY + (# horiz MCUs * h blocks/MCU * block size)
+                let mcuX = mcuY + (hMCU * h * DATA_UNIT_SIZE);
 
-                for (let yy = 0; yy < DATA_UNIT_SIZE; yy++) {
-                    let blockLineStart = top + yy * component.hSize;
-                    for (let xx = 0; xx < DATA_UNIT_SIZE; xx++) {
+                // Top-left coordinates of the block within the MCU
+                let topX = x * DATA_UNIT_SIZE;
+                let topY = y * DATA_UNIT_SIZE * component.hSize;
+
+                // Copy block contents to component
+                for (let yy = 0; yy < DATA_UNIT_SIZE; yy++) {   // yy is local y coordinate in block
+                    let blockLineStart = mcuX + topY + topX + (yy * component.hSize);
+                    for (let xx = 0; xx < DATA_UNIT_SIZE; xx++) {   // xx is local x coordinate in block
                         let idx = blockLineStart + xx;
+                        if (component.imgBuff[idx] != 0) {
+                            console.warn("Warning: overwriting imgBuf data: idx=" + idx
+                            + ", x=" + x + ", y=" + y + ", h=" + h + ", v=" + v + ", hMCU="
+                            + hMCU + ", vMCU=" + vMCU + ", topX=" + topX + ", topY="
+                            + topY + ", yy=" + yy + ", xx=" + xx + ", blockLineStart=" + blockLineStart);
+                        }
                         component.imgBuff[idx] = block[yy * DATA_UNIT_SIZE + xx];
                     }
                 }
