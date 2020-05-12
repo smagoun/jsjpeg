@@ -451,7 +451,7 @@ function decodeScan(marker, reader, img, scan) {
                 }
                 // Found restart marker, so reset decoder (F.2.1.3.1)
                 scan.dcpred.fill(0);
-                cnt = 0;    // Globals, eew
+                reader.align();     // Align to the next byte
             }
             decodeMCU(reader, img, scan, v, h);
             mcuIndex++;
@@ -1028,44 +1028,6 @@ function idct(coeffs) {
     return ret;
 }
 
-// TODO: Maintain state (cnt, byte) somewhere else - in a class? Move this fn to reader class?
-let cnt = 0;
-let byte = 0;
-// F.2.2.5
-function nextBit(reader, img) {
-    if (cnt === 0) {
-        byte = reader.nextByte();
-        cnt = 8;
-        if (byte === 0xFF) {
-            let byte2 = reader.nextByte();
-            if (byte2 != 0x0) {
-                if (byte2 === 0xDC) {   // DNL marker
-                    parseDNL(reader, img);
-                    // TODO: End scan
-                    console.warn("Found DNL marker in compressed data; not handled!");
-                } else if (byte2 >= 0xD0 && byte2 <= 0xD7) {
-                    // Handle restart marker (bytes D0-D7, marker RST0-RST7):
-                    console.warn("Found RST marker in nextBit()");
-                    // Byte-align
-                    cnt = 1;    // Set to '1' since we'll decrement at the end of the function. Gross.
-                    // Reset DC predictors (E.2.4 / F.2.1.3.1)
-                    img.scan.dcpred.fill(0);
-                    byte = reader.nextByte();
-                } else {
-                    console.error("Error: Found unexpected marker in compressed data: " + byte2.toString(16));
-                }
-            } else {
-                // Stuffed byte; ignore + let the decoder process the 0xff
-                ;
-            }
-        }
-    }
-    let bit = byte >> 7;
-    cnt--;
-    byte = byte << 1;
-    byte = byte & 0xFF; // Mask off high bits since byte is an int internally
-    return bit;
-}
 
 // Figure F.12
 function extend(v, t) {
@@ -1084,7 +1046,7 @@ function extend(v, t) {
 function receive(reader, img, ssss) {
     let v = 0;
     for (let i = 0; i < ssss; i++) {
-        v = (v << 1) + nextBit(reader, img);
+        v = (v << 1) + reader.nextBit(img);
     }
     return v;
 }

@@ -93,11 +93,11 @@ class HuffArray {
 
         i = 1;
         let bitString = "";
-        let code = nextBit(reader, img);
+        let code = reader.nextBit(img);
         bitString += code;
         while (code > maxcode[i]) {
             i++;
-            let tmp = nextBit(reader, img);
+            let tmp = reader.nextBit(img);
             bitString += tmp;
             code = (code << 1) + tmp;
         }

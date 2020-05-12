@@ -87,7 +87,7 @@ class HuffTree {
         let bitString = "";     // For debugging
         let node = this;
         while (true) {
-            let bit = nextBit(reader, img);
+            let bit = reader.nextBit(img);
             bitString += bit;
             node = node.descendNode(bit);
             if (node === undefined) {
