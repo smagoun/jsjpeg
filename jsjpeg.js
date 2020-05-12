@@ -465,93 +465,15 @@ function decodeScan(marker, reader, img, scan) {
         }
     }
 
-    // Draw the components
-    // TODO: Colorspace conversion; merge components into RBGA
-    // TODO: scale components to the final image as appropriate
-    for (let i = 0; i < components.length; i++) {
-        let component = components[i];
-        let compHSizeStr = document.getElementById("component" + i + "hsize");
-        compHSizeStr.textContent = component.hSize;
-        let compVSizeStr = document.getElementById("component" + i + "vsize");
-        compVSizeStr.textContent = component.vSize;
-        
-        let canvas = document.getElementById("component" + i + "Canvas");
-        canvas.setAttribute("width", component.hSize);
-        canvas.setAttribute("height", component.vSize);
-        let ctx = canvas.getContext("2d");
-        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let data = imgData.data;
-        for (let y = 0; y < component.vSize; y++) {
-            let srcLineStart = y * component.hSize;
-            for (let x = 0; x < component.hSize; x++) {
-                let val = component.imgBuff[srcLineStart + x];
-                let pixel = [val, val, val, 255];   // 255 for alpha channel
-                setPixel(data, component.hSize, x, y, pixel);
-            }
-        }
-        ctx.putImageData(imgData, 0, 0);
+    // Draw the components at their native size, then scale up to the image's size,
+    // then draw the components at the image's size. Finally, convert the components
+    // to RGB and draw the combined image to the page.
+    for (component of components) {
+        drawComponent(component);
+        scaleComponent(component);
+        drawComponentFullSize(component);
     }
-
-    // Scale components into output buffer
-    for (let i = 0; i < components.length; i++) {
-        let component = components[i];
-        let canvas = document.getElementById("component" + i + "RGBCanvas");
-        canvas.setAttribute("width", img.frame.outputX);
-        canvas.setAttribute("height", img.frame.outputY);
-        let ctx = canvas.getContext("2d");
-        let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let data = imgData.data;
-        let hScale = img.frame.outputX / component.hSize;  // Factor to scale component up to output side
-        let vScale = img.frame.outputY / component.vSize;  // Factor to scale component up to output side
-        for (let sy = 0, dy = 0; sy < component.vSize; sy++, dy+=vScale) {
-            let srcLineStart = sy * component.hSize;
-            for (let sx = 0, dx = 0; sx < component.hSize; sx++, dx+=hScale) {
-                let val = component.imgBuff[srcLineStart + sx];
-                let pixel = [val, val, val, 255];
-
-                for (let y = 0; y < vScale; y++) {
-                    for (let x = 0; x < hScale; x++) {
-                        let destY = dy + y;
-                        let destX = dx + x;
-                        setPixel(data, img.frame.outputX, destX, destY, pixel);
-                        component.outputBuff[(destY * img.frame.outputX) + destX] = val;
-                    }
-                }
-            }
-        }
-        ctx.putImageData(imgData, 0, 0);
-    }
-
-    // Combine images via YCbCr --> YUV conversion
-    let canvas = document.getElementById("outputCanvas");
-    canvas.setAttribute("width", img.frame.outputX);
-    canvas.setAttribute("height", img.frame.outputY);
-    let ctx = canvas.getContext("2d");
-    let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let data = imgData.data;
-
-    let Y, Cb, Cr;
-    let pixel;
-    for (let y = 0; y < img.frame.outputY; y++) {
-        let srcLineStart = y * img.frame.outputX;
-        for (let x = 0; x < img.frame.outputX; x++) {
-            if (frame.numComponents === 1) {
-                // JFIF grayscale
-                Y = components[0].outputBuff[srcLineStart + x];
-                pixel = [Y, Y, Y, 255];
-            } else if (frame.numComponents === 3) {
-                // JFIF YcbCr
-                Y = components[0].outputBuff[srcLineStart + x];
-                Cb = components[1].outputBuff[srcLineStart + x];
-                Cr = components[2].outputBuff[srcLineStart + x];
-                pixel = YCbCrToRGB(Y, Cb, Cr);
-            } else {
-                console.error("Error: Image has " + frame.numComponents + " components; we only support 1 or 3 for JFIF");
-            }
-            setPixel(data, img.frame.outputX, x, y, pixel);
-        }
-    }
-    ctx.putImageData(imgData, 0, 0);
+    combineComponents(components);
 
     document.getElementById("outputhsize").textContent = img.frame.outputX;
     document.getElementById("outputvsize").textContent = img.frame.outputY;
@@ -584,6 +506,123 @@ function decodeScan(marker, reader, img, scan) {
                 find_next_marker() (RSTx or DNL, I think)
             }
         }*/
+}
+
+/**
+ * Convert the 3 YCrCB components to RGB and combine them into a single output image,
+ * then draw the image to the output canvas.
+ * 
+ * @param {*} components List of components 
+ */
+function combineComponents(components) {
+    // Combine images via YCbCr --> YUV conversion
+    let canvas = document.getElementById("outputCanvas");
+    canvas.setAttribute("width", img.frame.outputX);
+    canvas.setAttribute("height", img.frame.outputY);
+    let ctx = canvas.getContext("2d");
+    let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let data = imgData.data;
+
+    let Y, Cb, Cr;
+    let pixel;
+    for (let y = 0; y < img.frame.outputY; y++) {
+        let srcLineStart = y * img.frame.outputX;
+        for (let x = 0; x < img.frame.outputX; x++) {
+            if (frame.numComponents === 1) {
+                // JFIF grayscale
+                Y = components[0].outputBuff[srcLineStart + x];
+                pixel = [Y, Y, Y, 255];
+            } else if (frame.numComponents === 3) {
+                // JFIF YcbCr
+                Y = components[0].outputBuff[srcLineStart + x];
+                Cb = components[1].outputBuff[srcLineStart + x];
+                Cr = components[2].outputBuff[srcLineStart + x];
+                pixel = YCbCrToRGB(Y, Cb, Cr);
+            } else {
+                console.error("Error: Image has " + frame.numComponents + " components; we only support 1 or 3 for JFIF");
+            }
+            setPixel(data, img.frame.outputX, x, y, pixel);
+        }
+    }
+    ctx.putImageData(imgData, 0, 0);
+}
+
+/**
+ * Scale the component from its native size to the image's size, placing the output
+ * into the component's outputBuff
+ * 
+ * @param {*} component 
+ */
+function scaleComponent(component) {
+    let hScale = img.frame.outputX / component.hSize;  // Factor to scale component up to output side
+    let vScale = img.frame.outputY / component.vSize;  // Factor to scale component up to output side
+    for (let sy = 0, dy = 0; sy < component.vSize; sy++, dy+=vScale) {
+        let srcLineStart = sy * component.hSize;
+        for (let sx = 0, dx = 0; sx < component.hSize; sx++, dx+=hScale) {
+            let val = component.imgBuff[srcLineStart + sx];
+
+            for (let y = 0; y < vScale; y++) {
+                for (let x = 0; x < hScale; x++) {
+                    let destY = dy + y;
+                    let destX = dx + x;
+                    component.outputBuff[(destY * img.frame.outputX) + destX] = val;
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Draw the component to the page, scaled up to the size of the image
+ * 
+ * @param {*} component 
+ */
+function drawComponentFullSize(component) {
+    let id = component.componentID;
+    let canvas = document.getElementById("component" + id + "ScaledCanvas");
+    canvas.setAttribute("width", img.frame.outputX);
+    canvas.setAttribute("height", img.frame.outputY);
+    let ctx = canvas.getContext("2d");
+    let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let data = imgData.data;
+    for (let y = 0; y < img.frame.outputY; y++) {
+        let srcLineStart = y * img.frame.outputX;
+        for (let x = 0; x < img.frame.outputX; x++) {
+            let val = component.outputBuff[srcLineStart + x];
+            let pixel = [val, val, val, 255];   // 255 for alpha channel
+            setPixel(data, img.frame.outputX, x, y, pixel);
+        }
+    }
+    ctx.putImageData(imgData, 0, 0);
+}
+
+/**
+ * Draw the component to the page at its native size
+ * 
+ * @param {*} component 
+ */
+function drawComponent(component) {
+    let id = component.componentID;
+    let compHSizeStr = document.getElementById("component" + id + "hsize");
+    compHSizeStr.textContent = component.hSize;
+    let compVSizeStr = document.getElementById("component" + id + "vsize");
+    compVSizeStr.textContent = component.vSize;
+    
+    let canvas = document.getElementById("component" + id + "Canvas");
+    canvas.setAttribute("width", component.hSize);
+    canvas.setAttribute("height", component.vSize);
+    let ctx = canvas.getContext("2d");
+    let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let data = imgData.data;
+    for (let y = 0; y < component.vSize; y++) {
+        let srcLineStart = y * component.hSize;
+        for (let x = 0; x < component.hSize; x++) {
+            let val = component.imgBuff[srcLineStart + x];
+            let pixel = [val, val, val, 255];   // 255 for alpha channel
+            setPixel(data, component.hSize, x, y, pixel);
+        }
+    }
+    ctx.putImageData(imgData, 0, 0);
 }
 
 /**
