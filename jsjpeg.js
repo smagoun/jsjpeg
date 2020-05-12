@@ -611,8 +611,8 @@ function YCbCrToRGB(Y, Cb, Cr) {
  * 
  * See A.2.3 for information about decoding interleaved data units.
  * 
- * @param {*} reader 
- * @param {*} img 
+ * @param {DataViewReader} reader Data source
+ * @param {*} img Struct with information about the image, including frame + components
  * @param {*} scan 
  * @param {*} vMCU Vertical index of this MCU
  * @param {*} hMCU Horizontal index of this MCU
@@ -756,7 +756,7 @@ function decodeACCoeffs(reader, img, zigzagCoeff, acTable) {
  * 
  * F.2.1.2
  * 
- * @param {*} reader Data source
+ * @param {DataViewReader} reader Data source
  * @param {*} img Struct with information about the image, including frame + components
  * @param {*} scan Struct with information about this scan
  * @param {*} id ID of the current component. Used to look up the current DC predictor
@@ -846,7 +846,15 @@ function clamp(val) {
     return (val > 255 ? 255 : (val < 0 ? 0 : val));
 }
 
-// Figure F.12
+/**
+ * Implements the EXTEND function to scale the value of a coefficient
+ * 
+ * F.2.2.1
+ * Figure F.12
+ * 
+ * @param {*} v 
+ * @param {*} t 
+ */
 function extend(v, t) {
     if (t === 0) {
         return 0;
@@ -859,7 +867,15 @@ function extend(v, t) {
     return v;
 }
 
-// F.2.2.4
+/**
+ * Implements the RECEIVE function to read a sequence of bits
+ * 
+ * F.2.2.4
+ * 
+ * @param {DataViewReader} reader Data source
+ * @param {*} img Struct with information about the image, including frame + components
+ * @param {*} ssss Number of bits to read
+ */
 function receive(reader, img, ssss) {
     let v = 0;
     for (let i = 0; i < ssss; i++) {
