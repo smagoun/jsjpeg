@@ -1,3 +1,36 @@
+/**
+ * Decode a JPEG image into an HTML Canvas
+ * 
+ * Rough algorithm from the JPEG spec:
+ * 
+ *     while (no_eoi_marker) {
+ *       while (no_sos_marker) {
+ *           interpret_markers()
+ *       }
+ *       decode_scan() {
+ *           interpret_header()
+ *           while (more_intervals) {
+ *               decode_restart_interval() {
+ *                   reset_decoder()
+ *                   while (more_mcus) {
+ *                       decode_mcu() {
+ *                           foreach(dataunit) {
+ *                               decode_data_unit() {
+ *                                   // A DU is an 8x8 block of samples
+ *                                   decode_dc_coeff()
+ *                                   decode_ac_coeff()
+ *                                   dequantize()
+ *                                   idct()
+ *                               }
+ *                           }
+ *                       }
+ *                   }
+ *                   find_next_marker()
+ *               }
+ *           }
+ *       }
+ *   }
+ */
 
 
 const ZIGZAG = [
@@ -109,7 +142,6 @@ function createMarkerCodeTable() {
  * @param {File} fileSpec 
  */
 function readFile(fileSpec) {
-    const codes = createMarkerCodeTable();
     let reader = new FileReader();
     reader.onload = function (evt) {
         let result = evt.target.result;
@@ -302,45 +334,6 @@ function decodeFrame(marker, reader, img) {
         component.imgBuff = new Array(component.hSize * component.vSize).fill(0); // component x * y
         component.outputBuff = new Array(frame.frameX, frame.frameY).fill(0);   // Image size
     }
-
-
-    // Interpret frame header
-    /*
-    while (no_eoi_marker) {
-        while (no_sos_marker) {
-            interpret_markers()
-        }
-        decode_scan() {
-            interpret_header()
-            while (more_intervals) {
-                decode_restart_interval() {
-                    reset_decoder()
-                    // # of entropy-encoded segments is defined by img
-                    //      width and restart interval 
-                    // If restart enabled, each segment has Ri MCUs (except the last one,
-                    //      which has as many needed to finish the scan)
-                    while (more_mcus) {
-                        decode_mcu() {
-                            foreach(dataunit) {
-                                decode_data_unit() {
-                                    // See F2.1.2
-                                    // A DU is an 8x8 block of samples
-                                    // Also see Notes in B.1.1.5 about padding
-                                    decode_dc_coeff()
-                                    decode_ac_coeff()
-                                    dequantize()
-                                    idct()
-                                }
-                            }
-                        }
-                    }
-                    find_next_marker()
-                }
-            }
-        }
-    }*/
-
-    //return (index + length - 2);    // Length includes the 2 bytes that describe length
 }
 
 
@@ -477,35 +470,6 @@ function decodeScan(marker, reader, img, scan) {
 
     document.getElementById("outputhsize").textContent = img.frame.outputX;
     document.getElementById("outputvsize").textContent = img.frame.outputY;
-    
-    /*
-    decode_scan() {
-        interpret_header()
-        while (more_intervals) {
-            decode_restart_interval() {
-                reset_decoder()
-                // # of entropy-encoded segments is defined by img
-                //      width and restart interval 
-                // If restart enabled, each segment has Ri MCUs (except the last one,
-                //      which has as many needed to finish the scan)
-                while (more_mcus) {
-                    decode_mcu() {
-                        foreach(dataunit) {
-                            decode_data_unit() {
-                                // See F2.1.2
-                                // A DU is an 8x8 block of samples
-                                // Also see Notes in B.1.1.5 about padding
-                                decode_dc_coeff()
-                                decode_ac_coeff()
-                                dequantize()
-                                idct()
-                            }
-                        }
-                    }
-                }
-                find_next_marker() (RSTx or DNL, I think)
-            }
-        }*/
 }
 
 /**
