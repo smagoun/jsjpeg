@@ -297,6 +297,7 @@ function decodeFrame(marker, reader, img) {
     for (component of components) {
         // TODO: Make this a UInt8 array?
         component.imgBuff = new Array(component.hSize * component.vSize).fill(0); // component x * y
+        component.outputBuff = new Array(frame.frameX, frame.frameY).fill(0);   // Image size
     }
 
 
@@ -506,6 +507,7 @@ function decodeScan(marker, reader, img, scan) {
                         let destY = dy + y;
                         let destX = dx + x;
                         setPixel(data, img.frame.outputX, destX, destY, pixel);
+                        component.outputBuff[(destY * img.frame.outputX) + destX] = val;
                     }
                 }
             }
@@ -523,20 +525,18 @@ function decodeScan(marker, reader, img, scan) {
 
     let Y, Cb, Cr;
     let pixel;
-    // TODO: Need to update this so that it reads from the correct pixel of
-    // each component, compensating for the different possible scaling factors
     for (let y = 0; y < img.frame.outputY; y++) {
         let srcLineStart = y * img.frame.outputX;
         for (let x = 0; x < img.frame.outputX; x++) {
             if (frame.numComponents === 1) {
                 // JFIF grayscale
-                Y = components[0].imgBuff[srcLineStart + x];
+                Y = components[0].outputBuff[srcLineStart + x];
                 pixel = [Y, Y, Y, 255];
             } else if (frame.numComponents === 3) {
                 // JFIF YcbCr
-                Y = components[0].imgBuff[srcLineStart + x];
-                Cb = components[1].imgBuff[srcLineStart + x];
-                Cr = components[2].imgBuff[srcLineStart + x];
+                Y = components[0].outputBuff[srcLineStart + x];
+                Cb = components[1].outputBuff[srcLineStart + x];
+                Cr = components[2].outputBuff[srcLineStart + x];
                 pixel = YCbCrToRGB(Y, Cb, Cr);
             } else {
                 console.error("Error: Image has " + frame.numComponents + " components; we only support 1 or 3 for JFIF");
