@@ -43,6 +43,7 @@ class HuffArray {
             code = code << 1;
             si++;
         }
+        // Note: this incorrectly drops leading zeros, for example the huffcode '001' is printed as '1'
         console.log("HUFFCODE: " + this.huffcode.map(x => x.toString(2)));
     }
 

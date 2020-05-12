@@ -203,6 +203,62 @@ function testIDCT(fn) {
     testName = "IDCT";
     compareOutput(testName, expected, output);
 }
+
+function testHuffmanDecoder(decoder) {
+    const bits = [0,0,0,7,1,1,1,1,1,0,0,0,0,0,0,0,0]; // BITS needs to be 1-indexed, so set [0]...
+    delete bits[0]; // ... then delete it here. Gross but simplifies things for testing.
+    const values = [4, 5, 3, 2, 6, 1, 0, 7, 8, 9, 10, 11];
+    const lengths = [3, 3, 3, 3, 3, 3, 3, 4, 5, 6, 7, 8];
+    // Binary representation of huffman codes for <values> followed by 5 padding bits in the last byte
+    const codeStr = [0b00000101, 0b00111001, 0b01110111, 0b01111011, 0b11101111, 0b11011111, 0b11011111];
+    const reader = new DataViewReader(new DataView(new Uint8Array(codeStr).buffer));
+
+    const img = {};     // Dummy mock
+    img.scan = {};
+    img.scan.dcpred = [];
+
+    let testCnt = 0;
+    let errCnt = 0;
+    decoder.initDecoder(bits);
+
+    function runInsertTest(level, value, expected) {
+        let val = decoder.insertCode(level, value);
+        testCnt++;
+        if (val != expected) {
+            console.error("Test " + testCnt + " Failed (expected " + expected + ", got " + val
+                + " while inserting " + value + ")");
+            errCnt++;
+        }
+    }
+    
+    // Test insertions
+    for (let i = 0; i < values.length; i++) {
+        runInsertTest(lengths[i], values[i], true);
+    }
+    // We shouldn't be able to insert an 8th node at L3, 
+    // but the HuffTree currently has no way of knowing this
+    // since nodes don't know the state of other nodes.
+    // For this to be a problem in practice, the JPEG
+    // file would have to be out-of-spec/corrupt
+    //runInsertTest(3, 12, false);    // Too many nodes in tree
+
+    // Test retrieval
+    for (let i = 0; i < values.length; i++) {
+        let ret = decoder.decodeHuffman(reader, img);
+        testCnt++
+        if (ret != values[i]) {
+            console.error("Test " + testCnt + " Failed (expected " +  values[i] + ", got " + ret + ")");
+            errCnt++;
+        }
+    }
+    console.log(decoder.constructor.name + " tests " + (errCnt === 0 ? "passed!" : " failed with " + errCnt + " failures"));
+}
+
+
+let huffDecoder = new HuffTree();
+testHuffmanDecoder(huffDecoder);
+huffDecoder = new HuffArray();
+testHuffmanDecoder(huffDecoder);
 testExtend();
 testDequantize();
 testReorder();

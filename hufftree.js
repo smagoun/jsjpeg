@@ -159,18 +159,21 @@ class HuffTree {
         }
     }
 
-    static test() {
+    /**
+     * Additional tests for HuffTree's getValue(). getValue() isn't currently used by the
+     * JPEG decoder, but it's a good way to experiement with the tree.
+     */
+    static testGetValue() {
         let tree = new HuffTree(0);
         let testCnt = 0;
         let errCnt = 0;
 
         function runInsertTest(level, value, expected) {
             let val = tree.insertCode(level, value);
+            testCnt++;
             if (val != expected) {
-                console.error("Test " + ++testCnt + " Failed (expected " + expected + ", got " + val + ")");
+                console.error("Test " + testCnt + " Failed (expected " + expected + ", got " + val + ")");
                 errCnt++;
-            } else {
-                console.log("Test " + ++testCnt + " passed");
             }
         }
 
@@ -195,11 +198,10 @@ class HuffTree {
         
         function runGetTest(input, expected) {
             let val = tree.getValue(input);
+            testCnt++;
             if (val != expected) {
-                console.error("Test " + ++testCnt + " Failed (expected " + expected + ", got " + val + ")");
+                console.error("Test " + testCnt + " Failed (expected " + expected + ", got " + val + ")");
                 errCnt++;
-            } else {
-                console.log("Test " + ++testCnt + " passed");
             }
         }
 
@@ -219,12 +221,13 @@ class HuffTree {
         // Sequence not in the table
         runGetTest("11111111", undefined);
 
+        const testName = "HuffTree.getValue";
         if (errCnt === 0) {
-            console.log("tests passed!");
+            console.log(testName + "tests passed!");
         } else {
-            console.error("tests failed: " + errCnt + " errors");
+            console.error(testName + "tests failed: " + errCnt + " errors");
         }
     }
 }
 
-// HuffTree.test();
+HuffTree.testGetValue();
