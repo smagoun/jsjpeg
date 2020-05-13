@@ -22,3 +22,5 @@ http://www.ctralie.com/PrincetonUGRAD/Projects/JPEG/jpeg.pdf
 picodec (python decoder):
 https://github.com/yohhoy/picojdec/
 
+clean implementation in python:
+https://github.com/enmasse/jpeg_read/
