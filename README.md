@@ -10,7 +10,7 @@ This was built as an exercise, but contributions are welcome.
 Open index.html in a browser, select the desired options, then load an image.
 
 ## Building
-No build system, just edit + load in a browser
+No build system, just edit + load index.html in a browser
 
 ## Testing
 For simplicity, tests run automatically on page load rather than via a separate test harness. 
