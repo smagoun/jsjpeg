@@ -644,8 +644,6 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
         // # of H,V blocks (data units) per MCU in the component
         let h = component.hSampleFactor;
         let v = component.vSampleFactor;
-        let mcuWidth = h * DATA_UNIT_SIZE;  // Width of the MCU in pixels
-        let mcuHeight = v * DATA_UNIT_SIZE; // Height of the MCU in pixels
         let block;
         for (let y = 0; y < v; y++) {   // Iterate over blocks in the MCU
             for (let x = 0; x < h; x++) {   // Iterate over blocks in the MCU
