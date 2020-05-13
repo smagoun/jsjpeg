@@ -21,6 +21,7 @@ Test output goes to the console.
 Inverse Discrete Cosine Transform (IDCT), which is not optimized.
 * Decoding large JPEGs will use a lot of memory.
 * Does not decode EXIF or other image metadata
+* The output image is not cropped to the image (frame) dimensions defined in the file; instead the output image is drawn to the 8px boundaries of a data block, which might be slightly larger than the output image. This manifests as 'streaking' on the right + bottom edges of the output image.
 
 ## License
 MIT License
