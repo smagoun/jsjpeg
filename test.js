@@ -41,10 +41,13 @@ function testYCbCrToRGB() {
         [150, 44, 21, 0, 255, 1, 255],  // Green
         [29, 255, 107, 0, 0, 254, 255],  // Blue
     ];
-    let output = [];
+    let output = new Array(testData.length);
+    for (let i = 0; i < output.length; i++) {
+        output[i] = [0, 0, 0, 0];
+    }
     let expected = [];
     for (let i = 0; i < testData.length; i++) {
-        output[i] = YCbCrToRGB(testData[i][0], testData[i][1], testData[i][2]);
+        YCbCrToRGB(testData[i][0], testData[i][1], testData[i][2], output[i]);
         expected[i] = [testData[i][3], testData[i][4], testData[i][5], testData[i][6]];
     }
     testName = "YCbCr to RGB";

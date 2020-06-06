@@ -488,7 +488,7 @@ function combineComponents(components) {
     let data = imgData.data;
 
     let Y, Cb, Cr;
-    let pixel;
+    let pixel = [0, 0, 0, 0];
     for (let y = 0; y < img.frame.outputY; y++) {
         let srcLineStart = y * img.frame.outputX;
         for (let x = 0; x < img.frame.outputX; x++) {
@@ -501,7 +501,7 @@ function combineComponents(components) {
                 Y = components[0].outputBuff[srcLineStart + x];
                 Cb = components[1].outputBuff[srcLineStart + x];
                 Cr = components[2].outputBuff[srcLineStart + x];
-                pixel = YCbCrToRGB(Y, Cb, Cr);
+                YCbCrToRGB(Y, Cb, Cr, pixel);
             } else {
                 console.error("Error: Image has " + frame.numComponents + " components; we only support 1 or 3 for JFIF");
             }
@@ -592,16 +592,18 @@ function drawComponent(component) {
 /**
  * Perform YCbCr to RGB colorspace conversion using the algorithm in the JFIF spec.
  * 
+ * Writes the RGB values (and sets alpha = 255) into pixel
+ * 
  * @param {*} Y 
  * @param {*} Cb 
  * @param {*} Cr 
+ * @param {*} pixel 4-element array of RGBA
  */
-function YCbCrToRGB(Y, Cb, Cr) {
-    let pixel = [0, 0, 0, 255];
+function YCbCrToRGB(Y, Cb, Cr, pixel) {
     pixel[0] = clamp(Math.round(Y + (1.402 * (Cr - 128))));
     pixel[1] = clamp(Math.round(Y - (0.34414 * (Cb - 128)) - (0.71414 * (Cr - 128))));
     pixel[2] = clamp(Math.round(Y + 1.772 * (Cb - 128)));
-    return pixel;
+    pixel[3] = 255;
 }
 
 /**
