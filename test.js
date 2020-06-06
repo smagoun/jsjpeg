@@ -205,6 +205,20 @@ function testIDCT(fn) {
     let output = fn(input);
     testName = fn.name;
     compareOutput(testName, expected, output);
+
+    // This example was seen in the wild while writing the chen-wang IDCT
+    input = new Array(64).fill(0);
+    input[0] = 6;   // Not special; could be another small # like 5, 7, 8....
+    expected = new Array(64).fill(1);
+    output = fn(input);
+    compareOutput(testName, expected, output);
+
+    // This example was seen in the wild while writing the chen-wang IDCT
+    input = new Array(64).fill(0);
+    input[0] = -6;   // Not special; could be another small # like -9, -8, -7....
+    expected = new Array(64).fill(-1);
+    output = fn(input);
+    compareOutput(testName, expected, output);
 }
 
 function testHuffmanDecoder(decoder) {
