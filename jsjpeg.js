@@ -137,7 +137,7 @@ function createMarkerCodeTable() {
 }
 
 /**
- * 
+ * Entry point. Reads the specified file and passes it to the parser.
  * 
  * @param {File} fileSpec 
  */
