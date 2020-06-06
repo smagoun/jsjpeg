@@ -416,6 +416,7 @@ function decodeScan(marker, reader, img, scan) {
     switch(idctType) {
         case "calculated":  idctFn = idct;          break;
         case "cached":      idctFn = idctCached;    break;
+        case "chenwang":    idctFn = idctChenWang;  break;
         default:
             console.log(`Warning: unknown IDCT type ${idctType}`);
             idctFn = idct;

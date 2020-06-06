@@ -192,7 +192,6 @@ function testIDCT(fn) {
            0,   0,   0,   0,   0,   0,   0,   0,
            0,   0,   0,   0,   0,   0,   0,   0,
     ];
-    let output = fn(input);
     let expected = [
          -66, -63, -71, -68, -56, -65, -68, -46,
          -71, -73, -72, -46, -20, -41, -66, -57,
@@ -203,7 +202,8 @@ function testIDCT(fn) {
          -53, -46, -61, -74, -65, -63, -62, -45,
          -47, -34, -53, -74, -60, -47, -47, -41,
     ];
-    testName = "IDCT";
+    let output = fn(input);
+    testName = fn.name;
     compareOutput(testName, expected, output);
 }
 
@@ -268,6 +268,8 @@ testReorder();
 idctFn = idct;
 testIDCT(idct);
 idctFn = idctCached;
+testIDCT(idctFn);
+idctFn = idctChenWang;
 testIDCT(idctFn);
 testLevelShift();
 testYCbCrToRGB();
