@@ -413,7 +413,13 @@ function decodeScan(marker, reader, img, scan) {
 
     // Chose IDCT function
     let idctType = document.querySelector('input[name="idctType"]:checked').value;
-    idctFn = idctType === "cached" ? idctCached : idct;
+    switch(idctType) {
+        case "calculated":  idctFn = idct;          break;
+        case "cached":      idctFn = idctCached;    break;
+        default:
+            console.log(`Warning: unknown IDCT type ${idctType}`);
+            idctFn = idct;
+    }
 
     // Order components in order specified by scan selector (B.2.3)
     let components = [];
