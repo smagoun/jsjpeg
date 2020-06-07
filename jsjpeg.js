@@ -330,9 +330,8 @@ function decodeFrame(marker, reader, img) {
 
     // Set up output buffers for each component
     for (component of components) {
-        // TODO: Make this a UInt8 array?
-        component.imgBuff = new Array(component.hSize * component.vSize).fill(0); // component x * y
-        component.outputBuff = new Array(frame.outputX * frame.outputY).fill(0);   // Image size
+        component.imgBuff = new Uint8Array(component.hSize * component.vSize).fill(0); // component x * y
+        component.outputBuff = new Uint8Array(frame.outputX * frame.outputY).fill(0);   // Image size
     }
 }
 
