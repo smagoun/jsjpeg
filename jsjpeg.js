@@ -332,7 +332,7 @@ function decodeFrame(marker, reader, img) {
     for (component of components) {
         // TODO: Make this a UInt8 array?
         component.imgBuff = new Array(component.hSize * component.vSize).fill(0); // component x * y
-        component.outputBuff = new Array(frame.frameX, frame.frameY).fill(0);   // Image size
+        component.outputBuff = new Array(frame.outputX * frame.outputY).fill(0);   // Image size
     }
 }
 
