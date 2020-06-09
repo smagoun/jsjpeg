@@ -88,7 +88,7 @@ class HuffTree {
         let node = this;
         while (true) {
             let bit = reader.nextBit(img);
-            bitString += bit;
+            // bitString += bit;
             node = node.descendNode(bit);
             if (node === undefined) {
                 console.error("Error: Couldn't find huffman value for huffman code " + bitString);

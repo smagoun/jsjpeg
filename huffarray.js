@@ -93,13 +93,13 @@ class HuffArray {
         }
 
         i = 1;
-        let bitString = "";
+        // let bitString = "";
         let code = reader.nextBit(img);
-        bitString += code;
+        // bitString += code;
         while (code > maxcode[i]) {
             i++;
             let tmp = reader.nextBit(img);
-            bitString += tmp;
+            // bitString += tmp;
             code = (code << 1) + tmp;
         }
         j = valptr[i];
