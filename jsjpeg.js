@@ -45,12 +45,6 @@ const ZIGZAG = [
 ];
 
 const QUANT_TABLE_SIZE = 64;
-let quantTables = [
-    new Array(QUANT_TABLE_SIZE),
-    new Array(QUANT_TABLE_SIZE),
-    new Array(QUANT_TABLE_SIZE),
-    new Array(QUANT_TABLE_SIZE),
-];
 
 const NUM_HUFFMAN_LENGTHS = 16;
 
@@ -163,7 +157,6 @@ function parseFile(data) {
     let codes = createMarkerCodeTable();
     let reader = new DataViewReader(new DataView(data));
     let seenSOI = false;
-    let seenSOF = false;
     let seeingJunk = false;
     while (reader.hasMoreBytes()) {
         // Look for markers / parameters
@@ -979,6 +972,10 @@ function parseQuantizationTable(marker, reader, img) {
     let length = reader.nextWord()
     //console.log("   Length of " + marker + " segment: " + length);
 
+    if (img.quantTables === undefined) {
+        img.quantTables = [ [], [], [], [] ];
+    }
+
     // Read a segment
     length = length - 2;
     while (length > 0) {
@@ -1010,10 +1007,9 @@ function parseQuantizationTable(marker, reader, img) {
             }
         }
         console.log("setting quant table " + destID + ": " + table);
-        quantTables[destID] = table;
+        img.quantTables[destID] = table;
         length = length - tableLength - 1;  // -1 for the precision+dest
     }
-    img.quantTables = quantTables;
 }
 
 
