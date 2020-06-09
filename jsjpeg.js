@@ -555,11 +555,11 @@ function drawComponentFullSize(component) {
     let ctx = canvas.getContext("2d");
     let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     let data = imgData.data;
+    let pixel = [0, 0, 0, 255];   // 255 for alpha channel
     for (let y = 0; y < img.frame.outputY; y++) {
         let srcLineStart = y * img.frame.outputX;
         for (let x = 0; x < img.frame.outputX; x++) {
-            let val = component.outputBuff[srcLineStart + x];
-            let pixel = [val, val, val, 255];   // 255 for alpha channel
+            pixel[0] = pixel[1] = pixel[2] = component.outputBuff[srcLineStart + x];
             setPixel(data, img.frame.outputX, x, y, pixel);
         }
     }
@@ -584,11 +584,11 @@ function drawComponent(component) {
     let ctx = canvas.getContext("2d");
     let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     let data = imgData.data;
+    let pixel = [0, 0, 0, 255];   // 255 for alpha channel
     for (let y = 0; y < component.vSize; y++) {
         let srcLineStart = y * component.hSize;
         for (let x = 0; x < component.hSize; x++) {
-            let val = component.imgBuff[srcLineStart + x];
-            let pixel = [val, val, val, 255];   // 255 for alpha channel
+            pixel[0] = pixel[1] = pixel[2] = component.imgBuff[srcLineStart + x];
             setPixel(data, component.hSize, x, y, pixel);
         }
     }
