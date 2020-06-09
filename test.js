@@ -31,7 +31,7 @@ function compareOutput(testName, expected, output) {
     console.log(testName + " tests " + (errCnt === 0 ? "passed!" : " failed with " + errCnt + " failures"));
 }
 
-function testYCbCrToRGB() {
+function testYCbCrToRGB(fn) {
     // Array of input values and corresponding expected output values
     // Note: Our integer YCbCr --> RGB has rounding errors, hence RGB values like '1', '254'
     let testData = [    // Y, Cb, Cr, R, G, B, A
@@ -47,10 +47,10 @@ function testYCbCrToRGB() {
     }
     let expected = [];
     for (let i = 0; i < testData.length; i++) {
-        YCbCrToRGB(testData[i][0], testData[i][1], testData[i][2], output[i]);
+        fn(testData[i][0], testData[i][1], testData[i][2], output[i]);
         expected[i] = [testData[i][3], testData[i][4], testData[i][5], testData[i][6]];
     }
-    testName = "YCbCr to RGB";
+    testName = fn.name;
     compareOutput(testName, expected, output);
 }
 
@@ -287,4 +287,7 @@ testIDCT(idctFn);
 idctFn = idctChenWang;
 testIDCT(idctFn);
 testLevelShift();
-testYCbCrToRGB();
+colorspaceFn = YCbCrToRGB;
+testYCbCrToRGB(colorspaceFn);
+colorspaceFn = YCbCrToRGBInt;
+testYCbCrToRGB(colorspaceFn);

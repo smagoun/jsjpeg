@@ -425,6 +425,17 @@ function decodeScan(marker, reader, img, scan) {
             idctFn = idct;
     }
 
+    // Choose colorspace conversion function
+    let colorConvFn;
+    let colorConvType = document.querySelector('input[name="colorConvType"]:checked').value;
+    switch(colorConvType) {
+        case "float":       colorConvFn = YCbCrToRGB;       break;
+        case "integer":     colorConvFn = YCbCrToRGBInt;    break;
+        default:
+            console.log(`Warning: unknown colorspace conversion type ${colorConvType}`);
+            colorConvFn = YCbCrToRGB;
+    }
+
     // Order components in order specified by scan selector (B.2.3)
     let components = [];
     for (selector of scan.components) {
@@ -476,7 +487,7 @@ function decodeScan(marker, reader, img, scan) {
         scaleComponent(component);
         drawComponentFullSize(component);
     }
-    combineComponents(components);
+    combineComponents(components, colorConvFn);
 
     document.getElementById("outputhsize").textContent = img.frame.outputX;
     document.getElementById("outputvsize").textContent = img.frame.outputY;
@@ -487,8 +498,9 @@ function decodeScan(marker, reader, img, scan) {
  * then draw the image to the output canvas.
  * 
  * @param {*} components List of components 
+ * @param {*} colorConvFn Function to use for colorspace conversion
  */
-function combineComponents(components) {
+function combineComponents(components, colorConvFn) {
     // Combine images via YCbCr --> YUV conversion
     let canvas = document.getElementById("outputCanvas");
     canvas.setAttribute("width", img.frame.outputX);
@@ -511,7 +523,7 @@ function combineComponents(components) {
                 Y = components[0].outputBuff[srcLineStart + x];
                 Cb = components[1].outputBuff[srcLineStart + x];
                 Cr = components[2].outputBuff[srcLineStart + x];
-                YCbCrToRGB(Y, Cb, Cr, pixel);
+                colorConvFn(Y, Cb, Cr, pixel);
             } else {
                 console.error("Error: Image has " + frame.numComponents + " components; we only support 1 or 3 for JFIF");
             }
