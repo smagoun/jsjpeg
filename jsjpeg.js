@@ -379,6 +379,10 @@ function parseStartOfSequence(marker, reader, img) {
     scan.se = se;
     scan.ah = ah;
     scan.al = al;
+    // Workspace to store DC + AC coefficients when decoding a block
+    scan.block = new Array(DATA_UNIT_SIZE * DATA_UNIT_SIZE);
+    // Scratch space used when reordering coefficients from zig-zag order
+    scan.scratch = new Array(DATA_UNIT_SIZE * DATA_UNIT_SIZE);
     return scan;
 }
 
@@ -771,26 +775,25 @@ function decodeACCoeffs(reader, img, zigzagCoeff, acTable) {
  */
 function decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable) {
     // 8x8 table of DC/AC coeffs
-    const zigzagCoeff = new Array(64).fill(0);
+    scan.block.fill(0);
 
     // Decode DC Coeff for 8x8 block using DC table dest in scan header (F.2.2.1)
-    zigzagCoeff[0] = decodeDCCoeff(reader, img, scan, id, dcTable);
-    scan.dcpred[id] = zigzagCoeff[0];
+    scan.block[0] = decodeDCCoeff(reader, img, scan, id, dcTable);
+    scan.dcpred[id] = scan.block[0];
 
     // Decode AC coeffs for 8x8 block using AC table dest in scan header (F.2.2.2)
-    decodeACCoeffs(reader, img, zigzagCoeff, acTable);
+    decodeACCoeffs(reader, img, scan.block, acTable);
 
     // Dequantize using table dest in frame header (F.2.1.4)
     // Multiply each coefficient by the corresponding 
     // value in the quant table (which is in ZZ order too)
-    dequantize(zigzagCoeff, quantTable);
+    dequantize(scan.block, quantTable);
 
     // Reorder coefficients (de-zig-zag)
-    reordered = reorder(zigzagCoeff);
-    // console.log("Reordered:" + reordered);
+    reorder(scan.block, scan.scratch);
 
     // Calculate inverse IDCT on dequantized values (F.2.1.5)
-    let block = idctFn(reordered);
+    let block = idctFn(scan.block);
     
     // Level-shift (F.2.1.5)
     levelShift(block);
@@ -815,16 +818,18 @@ function levelShift(block) {
  * 
  * Not clearly specified, but clearly necessary.
  * 
- * Returns a new array of coefficients
+ * Operates in-place on coeff.
  * 
- * @param {*} coeff 
+ * @param {*} coeff Coefficients in zig-zag order
+ * @param {*} scratch Scratch space to use when reordering
  */
-function reorder(coeff) {
-    let reordered = new Array(coeff.length);
+function reorder(coeff, scratch) {
     for (let i = 0; i < coeff.length; i++) {
-        reordered[i] = coeff[ZIGZAG[i]];
+        scratch[i] = coeff[ZIGZAG[i]];
     }
-    return reordered;
+    for (let i = 0; i < coeff.length; i++) {
+        coeff[i] = scratch[i];
+    }
 }
 
 /**

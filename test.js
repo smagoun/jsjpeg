@@ -136,9 +136,10 @@ function testReorder() {
           0,  0,  0,  0,  0,  0,  0,  0,
           0,  0,  0,  0,  0,  0,  0,  0,
     ];
-    let output = reorder(coeffs);
+    let scratch = new Array(coeffs.length);
+    reorder(coeffs, scratch);
     testName = "Reordering";
-    compareOutput(testName, expected, output);
+    compareOutput(testName, expected, coeffs);
 
 }
 
