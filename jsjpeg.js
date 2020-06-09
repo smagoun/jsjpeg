@@ -629,6 +629,27 @@ function YCbCrToRGB(Y, Cb, Cr, pixel) {
 }
 
 /**
+ * Integer implementation of YCbCr to RGB colorspace conversion.
+ * 
+ * Writes the RGB values (and sets alpha = 255) into pixel
+ * 
+ * @param {*} Y 
+ * @param {*} Cb 
+ * @param {*} Cr 
+ * @param {*} pixel 4-element array of RGBA
+ */
+function YCbCrToRGBInt(Y, Cb, Cr, pixel) {
+    Y = Y << 8;
+    Cb -= 128;
+    Cr -= 128;
+    pixel[0] = clamp((Y + (359 * Cr) + 128) >> 8);
+    pixel[1] = clamp((Y - (88 * Cb) - (183 * Cr) + 128) >> 8);
+    pixel[2] = clamp((Y + (454 * Cb) + 128) >> 8);
+    pixel[3] = 255;
+}
+
+
+/**
  * Decode all of the data blocks in the MCU. The MCU contains 1 or more data
  * blocks for each component. The number of data blocks per component is 
  * determined by the horizontal + vertical sampling factors of each component.
