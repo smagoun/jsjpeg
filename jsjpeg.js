@@ -414,7 +414,7 @@ function decodeScan(marker, reader, img, scan) {
     // Scratch space for DC predictor. Indexed by component ID (therefore usually 1-indexed)
     scan.dcpred = [];
 
-    // Chose IDCT function
+    // Choose IDCT function
     let idctType = document.querySelector('input[name="idctType"]:checked').value;
     switch(idctType) {
         case "calculated":  idctFn = idct;          break;
