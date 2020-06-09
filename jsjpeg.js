@@ -490,7 +490,7 @@ function decodeScan(marker, reader, img, scan) {
  * Convert the 3 YCrCB components to RGB and combine them into a single output image,
  * then draw the image to the output canvas.
  * 
- * @param {*} components List of components 
+ * @param {*} components List of components
  * @param {*} colorConvFn Function to use for colorspace conversion
  */
 function combineComponents(components, colorConvFn) {
@@ -504,24 +504,34 @@ function combineComponents(components, colorConvFn) {
 
     let Y, Cb, Cr;
     let pixel = [0, 0, 0, 0];
-    for (let y = 0; y < img.frame.outputY; y++) {
-        let srcLineStart = y * img.frame.outputX;
-        for (let x = 0; x < img.frame.outputX; x++) {
-            if (frame.numComponents === 1) {
-                // JFIF grayscale
-                Y = components[0].outputBuff[srcLineStart + x];
+    let width = img.frame.outputX;
+    let height = img.frame.outputY;
+    let index = 0;
+    if (frame.numComponents === 1) {
+        // JFIF grayscale
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++, index++) {
+                Y = components[0].outputBuff[index];
                 pixel = [Y, Y, Y, 255];
-            } else if (frame.numComponents === 3) {
-                // JFIF YcbCr
-                Y = components[0].outputBuff[srcLineStart + x];
-                Cb = components[1].outputBuff[srcLineStart + x];
-                Cr = components[2].outputBuff[srcLineStart + x];
-                colorConvFn(Y, Cb, Cr, pixel);
-            } else {
-                console.error("Error: Image has " + frame.numComponents + " components; we only support 1 or 3 for JFIF");
+                setPixel(data, width, x, y, pixel);
             }
-            setPixel(data, img.frame.outputX, x, y, pixel);
         }
+    } else if (frame.numComponents === 3) {
+        // JFIF YcbCr
+        let buff0 = components[0].outputBuff;
+        let buff1 = components[1].outputBuff;
+        let buff2 = components[2].outputBuff;
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++, index++) {
+                Y = buff0[index];
+                Cb = buff1[index];
+                Cr = buff2[index];
+                colorConvFn(Y, Cb, Cr, pixel);
+                setPixel(data, width, x, y, pixel);
+            }
+        }
+    } else {
+        console.error("Error: Image has " + frame.numComponents + " components; we only support 1 or 3 for JFIF");
     }
     ctx.putImageData(imgData, 0, 0);
 }
