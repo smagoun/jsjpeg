@@ -698,7 +698,6 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
  * @param {*} img Struct containing information about the image
  * @param {*} scan Struct containing information about the scan (specifically the table of DC predictors)
  * @param {*} id ID of the current component. Used to look up the current DC predictor
- * @param {Array} zigzagCoeff 64-element array where we store the AC coefficients
  * @param {*} dcTable Huffman table implementation for DC coefficients
  */
 function decodeDCCoeff(reader, img, scan, id, dcTable) {
