@@ -692,17 +692,18 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
         // # of H,V blocks (data units) per MCU in the component
         let h = component.hSampleFactor;
         let v = component.vSampleFactor;
+        
+        // Top-left pixel coordinates of the MCU within the component
+        // mcuY: # vert MCUs * v blocks/MCU * block size * line stride of component
+        let mcuY = vMCU * v * DATA_UNIT_SIZE * component.hSize;
+        // mcuX: mcuY + (# horiz MCUs * h blocks/MCU * block size)
+        let mcuX = mcuY + (hMCU * h * DATA_UNIT_SIZE);
+
         let block;
         for (let y = 0; y < v; y++) {   // Iterate over blocks in the MCU
             for (let x = 0; x < h; x++) {   // Iterate over blocks in the MCU
                 // Block is the decoded image data. Store it in a component
                 block = decodeDataUnit(reader, img, scan, id, dcTable, acTable, quantTable);
-
-                // Top-left pixel coordinates of the MCU within the component
-                // mcuY: # vert MCUs * v blocks/MCU * block size * line stride of component
-                let mcuY = vMCU * v * DATA_UNIT_SIZE * component.hSize;
-                // mcuX: mcuY + (# horiz MCUs * h blocks/MCU * block size)
-                let mcuX = mcuY + (hMCU * h * DATA_UNIT_SIZE);
 
                 // Top-left coordinates of the block within the MCU
                 let topX = x * DATA_UNIT_SIZE;
