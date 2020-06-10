@@ -906,7 +906,7 @@ function extend(v, t) {
     if (t === 0) {
         return 0;
     }
-    let vt = 2 ** (t - 1);
+    let vt = 1 << (t - 1);      // Same as 2 ** (t - 1), which is what the JPEG spec uses
     if (v < vt) {
         vt = (-1 << t) + 1;
         v += vt
