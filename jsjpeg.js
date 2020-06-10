@@ -499,7 +499,7 @@ function combineComponents(components, colorConvFn) {
     canvas.setAttribute("width", img.frame.outputX);
     canvas.setAttribute("height", img.frame.outputY);
     let ctx = canvas.getContext("2d");
-    let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let imgData = ctx.createImageData(canvas.width, canvas.height);
     let data = imgData.data;
 
     let Y, Cb, Cr;
@@ -572,7 +572,7 @@ function drawComponentFullSize(component) {
     canvas.setAttribute("width", img.frame.outputX);
     canvas.setAttribute("height", img.frame.outputY);
     let ctx = canvas.getContext("2d");
-    let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let imgData = ctx.createImageData(canvas.width, canvas.height);
     let data = imgData.data;
     let pixel = [0, 0, 0, 255];   // 255 for alpha channel
     for (let y = 0; y < img.frame.outputY; y++) {
@@ -601,7 +601,7 @@ function drawComponent(component) {
     canvas.setAttribute("width", component.hSize);
     canvas.setAttribute("height", component.vSize);
     let ctx = canvas.getContext("2d");
-    let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let imgData = ctx.createImageData(canvas.width, canvas.height);
     let data = imgData.data;
     let pixel = [0, 0, 0, 255];   // 255 for alpha channel
     for (let y = 0; y < component.vSize; y++) {
