@@ -545,6 +545,10 @@ function combineComponents(components, colorConvFn) {
 function scaleComponent(component) {
     let hScale = img.frame.outputX / component.hSize;  // Factor to scale component up to output side
     let vScale = img.frame.outputY / component.vSize;  // Factor to scale component up to output side
+    if (hScale === 1 && vScale === 1) {     // Optimization
+        component.outputBuff.set(component.imgBuff, 0);
+        return;
+    }
     for (let sy = 0, dy = 0; sy < component.vSize; sy++, dy+=vScale) {
         let srcLineStart = sy * component.hSize;
         for (let sx = 0, dx = 0; sx < component.hSize; sx++, dx+=hScale) {
