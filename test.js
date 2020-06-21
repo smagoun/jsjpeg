@@ -273,20 +273,142 @@ function testHuffmanDecoder(decoder) {
 }
 
 
+function testHasMoreBytes() {
+    let errCnt = 0;
+    let testCnt = 0;
+    const data = [0b00000101, 0b00111001, 0b01110111, 0b01111011];
+    let reader = new DataViewReader(new DataView(new Uint8Array(data).buffer));
+
+    // Test initial state
+    testCnt++;
+    if (!reader.hasMoreBytes()) {
+        console.error(`Test ${testCnt} (initial state) failed`);
+        errCnt++;
+    }
+    reader.nextByte();
+    reader.nextByte();
+    reader.nextByte();
+    // One more byte left
+    testCnt++;
+    if (!reader.hasMoreBytes()) {
+        console.error(`Test ${testCnt} (one byte left) failed`);
+        errCnt++;
+    }
+    reader.nextByte();
+    // Reader is empty
+    testCnt++;
+    if (reader.hasMoreBytes()) {
+        console.error(`Test ${testCnt} (reader is empty) failed`);
+        errCnt++;
+    }
+
+    if (errCnt) {
+        console.error(`DataViewReader ${errCnt}/${testCnt} tests failed`);
+    } else {
+        console.log(`DataViewReader ${testCnt}/${testCnt} tests passed`);
+    }
+}
+
+function testAlign() {
+    let errCnt = 0;
+    let testCnt = 0;
+    const data = [0b00000000, 0b00001111];
+    reader = new DataViewReader(new DataView(new Uint8Array(data).buffer));
+    let byte;
+    let testName = "";
+
+    testName = "Read a few bits, then align"
+    testCnt++;
+    reader.reset();
+    reader.nextBit() && reader.nextBit() && reader.nextBit();
+    reader.align();
+    byte = reader.nextByte();
+    if (byte != 0b00001111) {
+        console.error(`Test ${testCnt} (${testName}) failed`);
+        errCnt++;
+    }
+
+    testName = "Call align when we're already aligned";
+    testCnt++;
+    reader.reset();
+    reader.align();
+    byte = reader.nextByte();
+    if (byte != 0b0000000) {
+        console.error(`Test ${testCnt} (${testName}) failed`);
+        errCnt++;
+    }
+
+    if (errCnt) {
+        console.error(`DataViewReader ${errCnt}/${testCnt} tests failed`);
+    } else {
+        console.log(`DataViewReader ${testCnt}/${testCnt} tests passed`);
+    }
+}
+
+function testNextBit() {
+    let errCnt = 0;
+    let testCnt = 0;
+    // Byte #3 is 'stuffed'; values of bytes 1+2 are arbitrary but not 0xFF or 0x00
+    const data = [0b00001100, 0b11111111, 0b00000000, 0b10101010];
+    const reader = new DataViewReader(new DataView(new Uint8Array(data).buffer));
+
+    testName = "Stuffed byte";
+    testCnt++;
+    reader.reset();
+    for (let i = 0; i < 8; i++) {
+        reader.nextBit();
+    }
+    // Index should be 2 since that's the address of the 0x00 'stuffing'
+    if (reader.nextBit() != 1 || reader.currentIndex() != 2) {
+        console.error(`Test ${testCnt} (${testName}) failed`);
+        errCnt++;
+    }
+
+    testName = "Reading bits after stuffed byte";
+    testCnt++;
+    reader.reset();
+    for (let i = 0; i < 16; i++) {
+        reader.nextBit();
+    }
+    if (reader.nextBit() != 1 || reader.currentIndex() != 3) {
+        console.error(`Test ${testCnt} (${testName}) failed`);
+        errCnt++;
+    }
+
+
+    if (errCnt) {
+        console.error(`DataViewReader ${errCnt}/${testCnt} tests failed`);
+    } else {
+        console.log(`DataViewReader ${testCnt}/${testCnt} tests passed`);
+    }
+}
+
+// Reader
+testHasMoreBytes();
+testAlign();
+testNextBit();
+
+// Huffman decoder
 let huffDecoder = new HuffTree();
 testHuffmanDecoder(huffDecoder);
 huffDecoder = new HuffArray();
 testHuffmanDecoder(huffDecoder);
+
+// Misc
 testExtend();
 testDequantize();
 testReorder();
+testLevelShift();
+
+// IDCT
 idctFn = idct;
 testIDCT(idct);
 idctFn = idctCached;
 testIDCT(idctFn);
 idctFn = idctChenWang;
 testIDCT(idctFn);
-testLevelShift();
+
+// Colorspace conversion
 colorspaceFn = YCbCrToRGB;
 testYCbCrToRGB(colorspaceFn);
 colorspaceFn = YCbCrToRGBInt;
