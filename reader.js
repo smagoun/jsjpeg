@@ -16,7 +16,7 @@ class DataViewReader {
     reset() {
         this.index = -1;     // Index of last byte we looked at
         this.byte = 0;  // Current byte; used for reading individual bits
-        this.cnt = 0;  // Last bit we looked at. Starts with the high bit
+        this.cnt = 0;  // Index of the last bit we looked at. Starts with the high bit
     }
 
     /**
