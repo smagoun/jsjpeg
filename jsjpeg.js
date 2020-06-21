@@ -676,13 +676,16 @@ function decodeMCU(reader, img, scan, vMCU, hMCU) {
     // breaks for hierachical images, but so what?
     //
     // Also want to bolt on the ZZ tables to Component....time to make a component class?
-    for (component of scan.orderedComponents) {
+    for (let i = 0; i < scan.orderedComponents.length; i++) {
+        let component = scan.orderedComponents[i];
         let id = component.componentID;
 
         // Find the component metadata in the scan so we can look up huff tables. Ugh so messy
-        let dcTableID;
-        let acTableID;
-        for (sc of scan.components) {
+        let dcTableID = 0;
+        let acTableID = 0;
+        // for (sc of scan.components) {
+        for (let j = 0; j < scan.components.length; j++) {
+            let sc = scan.components[j];
             if (sc[0] === id) {
                 dcTableID = sc[1];
                 acTableID = sc[2];
