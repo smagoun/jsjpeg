@@ -393,6 +393,8 @@ let huffDecoder = new HuffTree();
 testHuffmanDecoder(huffDecoder);
 huffDecoder = new HuffArray();
 testHuffmanDecoder(huffDecoder);
+huffDecoder = new HuffTable();
+testHuffmanDecoder(huffDecoder);
 
 // Misc
 testExtend();

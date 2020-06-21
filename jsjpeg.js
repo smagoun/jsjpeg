@@ -924,17 +924,33 @@ function extend(v, t) {
 /**
  * Implements the RECEIVE function to read a sequence of bits
  * 
+ * Not compatible with the HuffTable decoder.
+ * 
  * F.2.2.4
  * 
  * @param {DataViewReader} reader Data source
  * @param {*} img Struct with information about the image, including frame + components
  * @param {*} ssss Number of bits to read
  */
-function receive(reader, img, ssss) {
+function receiveOrig(reader, img, ssss) {
     let v = 0;
     for (let i = 0; i < ssss; i++) {
         v = (v << 1) + reader.nextBit(img);
     }
+    return v;
+}
+
+/**
+ * Implementation of the RECEIVE function that relies on the reader
+ * to return the right # of bits. For use with HuffTable decoder.
+ * 
+ * @param {*} reader 
+ * @param {*} img 
+ * @param {*} ssss 
+ */
+function receive(reader, img, ssss) {
+    let v = reader.peek(img, ssss);
+    reader.consumeBits(ssss);
     return v;
 }
 
@@ -1071,7 +1087,15 @@ function parseHuffmanTable(marker, reader, img) {
 
         // Read code values for each length (Vi,j) and push them into the Huffman decoder
         let decoderType = document.querySelector('input[name="huffmanType"]:checked').value;
-        let huffDecoder = decoderType === "tree" ? new HuffTree() : new HuffArray();
+        let huffDecoder;
+        switch (decoderType) {
+            case "tree":    huffDecoder = new HuffTree();   break;
+            case "array":   huffDecoder = new HuffArray();  break;
+            case "table":   huffDecoder = new HuffTable();  break;
+            default:
+                console.error(`Invalid huffman decoder ${decoderType}`);
+                huffDecoder = tree;
+        }
         huffDecoder.initDecoder(bits);
         let numCodes = 0;
         for (let i = 1; i <= NUM_HUFFMAN_LENGTHS; i++) {    // 1-indexed to match JPEG spec
