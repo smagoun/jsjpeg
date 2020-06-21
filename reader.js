@@ -39,7 +39,7 @@ class DataViewReader {
      * Return true if there are more bytes to read
      */
     hasMoreBytes() {
-        return this.index < this.view.byteLength;
+        return this.index < this.view.byteLength - 1;
     }
 
     /**
