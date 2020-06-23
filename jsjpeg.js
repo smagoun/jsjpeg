@@ -222,6 +222,11 @@ function parseFile(data) {
             img.scan = parseStartOfSequence(marker, reader);
             decodeScan(marker, reader, img, img.scan);
         } else if (marker === "DNL") {
+            // TODO: We shouldn't come across this in this part of the parser,
+            // and even if we didn't we wouldn't know what to do with it.
+            // Best thing to do is to preprocess the file to extract the # of lines
+            // from the DNL header, so we don't have to check for DNL while decoding a scan
+            // (Also, DNL is rarely used in practice, many decoders don't support it...)
             parseDNL(reader, img);
         } else if (marker === "DHP") {
             // DHP only used in hierarchical images
